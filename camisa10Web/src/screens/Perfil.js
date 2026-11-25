@@ -24,19 +24,21 @@ import {
   FireIcon,
   CheckCircleIcon,
   ArrowLeftIcon,
+  MedalIcon,
+  ChartBarIcon,
 } from "phosphor-react-native";
 
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BottomNav } from "../components/bottomNav";
+import { SideBar } from "../components/sideBar";
 import { FotoPerfil } from "../components/fotoPerfil";
 import { Texto } from "../components/texto";
 
 import { useAuth } from "../context/AuthContext";
-import { obterTimesDisponiveis } from "../services/authService";
-import { atualizarFotoPerfil } from "../services/authService";
 import {
+  obterTimesDisponiveis,
+  atualizarFotoPerfil,
   obterEstatisticasGamificacao,
   obterSequenciaQuiz,
 } from "../services/authService";
@@ -81,17 +83,44 @@ export function Perfil() {
   } = useAuth();
 
   const [estatisticas, setEstatisticas] = useState(null);
+
   const [carregandoEstatisticas, setCarregandoEstatisticas] =
     useState(true);
-  const [erroEstatisticas, setErroEstatisticas] = useState(null);
+
+  const [erroEstatisticas, setErroEstatisticas] =
+    useState(null);
 
   const [sequenciaQuiz, setSequenciaQuiz] = useState(null);
+
   const [carregandoSequencia, setCarregandoSequencia] =
     useState(true);
 
-  const [timesDisponiveis, setTimesDisponiveis] = useState([]);
-  const [carregandoTimes, setCarregandoTimes] = useState(false);
-  const [modalTimesVisivel, setModalTimesVisivel] = useState(false);
+  const [timesDisponiveis, setTimesDisponiveis] =
+    useState([]);
+
+  const [carregandoTimes, setCarregandoTimes] =
+    useState(false);
+
+  const [modalTimesVisivel, setModalTimesVisivel] =
+    useState(false);
+
+  // =========================================================
+  // CORES DO TEMA
+  // =========================================================
+
+  const fundo = cores.background;
+  const superficie = cores.surface;
+  const superficieSecundaria = cores.surfaceSecondary;
+  const borda = cores.border;
+  const texto = cores.text;
+  const textoSecundario = cores.textSecondary;
+  const primaria = cores.primary;
+  const icone = cores.icon;
+  const overlay = cores.overlay;
+
+  const corSucesso = primaria;
+  const corAmarela = "#FFC107";
+  const corVermelha = "#E53935";
 
   // =========================================================
   // ESTATÍSTICAS
@@ -163,6 +192,7 @@ export function Perfil() {
       const resultado = await atualizarFotoPerfil(uri);
 
       atualizarFotoUsuario(resultado.avatar_url);
+
       setModalSucessoVisivel(true);
     } catch (error) {
       console.log("Erro ao atualizar foto:", error.message);
@@ -197,6 +227,7 @@ export function Perfil() {
       });
 
       setModalTimesVisivel(false);
+      setPesquisaTime("");
     } catch (error) {
       console.log("Erro ao atualizar time favorito:", error.message);
     }
@@ -209,28 +240,30 @@ export function Perfil() {
   const usuario = {
     nome: usuarioAutenticado?.nome || "Usuário",
 
-    // Dados reais recebidos do backend.
     xpTotal: estatisticas?.xp_total ?? 0,
+
     quizzes: estatisticas?.quizzes_concluidos ?? 0,
 
-    // Sequências recebidas do backend.
     sequenciaAtual: sequenciaQuiz?.sequencia_atual ?? 0,
+
     maiorSequencia: sequenciaQuiz?.maior_sequencia ?? 0,
 
-    timeFavorito: usuarioAutenticado?.time_coracao?.nome || "Nenhum",
+    timeFavorito:
+      usuarioAutenticado?.time_coracao?.nome || "Nenhum",
+
     notificacoes: "Ativadas",
-    acessibilidade: "Ver mais",
+
+    acessibilidade: "Configurar",
+
     tema: temaAtivo === "dark" ? "Escuro" : "Claro",
 
-    // Acertos reais registrados pelo backend.
     respostasCorretas: estatisticas?.acertos ?? 0,
 
-    // Aguardando integração do sistema de escalações.
     escalacoesCorretas: null,
   };
 
   // =========================================================
-  // SISTEMA DE NÍVEIS — DADOS RECEBIDOS DO BACKEND
+  // XP E NÍVEL
   // =========================================================
 
   const xpTotal = Math.max(
@@ -249,10 +282,18 @@ export function Perfil() {
   const xpNecessarioNivel =
     estatisticas?.xp_necessario_nivel ?? 10000;
 
-  const progressoNivel = estatisticas?.progresso_nivel ?? 0;
+  const progressoNivel = Math.min(
+    100,
+    Math.max(0, Number(estatisticas?.progresso_nivel) || 0)
+  );
+
+  const xpRestante = Math.max(
+    0,
+    Number(xpProximoNivel) - xpTotal
+  );
 
   // =========================================================
-  // REGRAS DAS CONQUISTAS
+  // CONQUISTAS
   // =========================================================
 
   const conquistas = [
@@ -304,139 +345,1016 @@ export function Perfil() {
       conquista.progresso >= conquista.requisito,
   }));
 
+  const conquistasDesbloqueadas = conquistas.filter(
+    (item) => item.desbloqueada
+  ).length;
+
   // =========================================================
-  // COMPONENTE
+  // LISTA DE TIMES FILTRADA
+  // =========================================================
+
+  const timesFiltrados = timesDisponiveis.filter((time) =>
+    time.nome
+      ?.toLowerCase()
+      .includes(pesquisaTime.toLowerCase().trim())
+  );
+
+  // =========================================================
+  // COMPONENTE: CARD DE ESTATÍSTICA
+  // =========================================================
+
+  function CardEstatistica({
+    Icon,
+    valor,
+    titulo,
+    cor,
+  }) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: superficie,
+          borderWidth: 1,
+          borderColor: borda,
+          borderRadius: 16,
+          paddingVertical: 18,
+          paddingHorizontal: 8,
+          alignItems: "center",
+          minWidth: 0,
+        }}
+      >
+        <Icon
+          size={25 * escalaIcone}
+          color={cor}
+          weight="fill"
+        />
+
+        <Texto
+          tamanho={18}
+          style={{
+            color: texto,
+            fontWeight: "800",
+            marginTop: 8,
+            textAlign: "center",
+          }}
+        >
+          {valor}
+        </Texto>
+
+        <Texto
+          tamanho={11}
+          style={{
+            color: textoSecundario,
+            marginTop: 4,
+            textAlign: "center",
+          }}
+        >
+          {titulo}
+        </Texto>
+      </View>
+    );
+  }
+
+  // =========================================================
+  // COMPONENTE: TÍTULO DE SEÇÃO
+  // =========================================================
+
+  function TituloSecao({ titulo, descricao, direita }) {
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 14,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Texto
+            tamanho={19}
+            style={{
+              color: texto,
+              fontWeight: "800",
+            }}
+          >
+            {titulo}
+          </Texto>
+
+          {descricao && (
+            <Texto
+              tamanho={12}
+              style={{
+                color: textoSecundario,
+                marginTop: 3,
+              }}
+            >
+              {descricao}
+            </Texto>
+          )}
+        </View>
+
+        {direita}
+      </View>
+    );
+  }
+
+  // =========================================================
+  // COMPONENTE: ITEM DE CONFIGURAÇÃO
+  // =========================================================
+
+  function ItemConfiguracao({
+    Icon,
+    titulo,
+    descricao,
+    valor,
+    onPress,
+    ultimo = false,
+  }) {
+    return (
+      <>
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => ({
+            minHeight: 66,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 15,
+            paddingVertical: 12,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: superficieSecundaria,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon
+              size={22 * escalaIcone}
+              color={icone}
+              weight="regular"
+            />
+          </View>
+
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Texto
+              tamanho={14}
+              style={{
+                color: texto,
+                fontWeight: "600",
+              }}
+            >
+              {titulo}
+            </Texto>
+
+            {descricao && (
+              <Texto
+                tamanho={11}
+                style={{
+                  color: textoSecundario,
+                  marginTop: 3,
+                }}
+              >
+                {descricao}
+              </Texto>
+            )}
+          </View>
+
+          {valor ? (
+            <Texto
+              tamanho={11}
+              style={{
+                color: textoSecundario,
+                marginRight: 6,
+                maxWidth: 100,
+                textAlign: "right",
+              }}
+            >
+              {valor}
+            </Texto>
+          ) : null}
+
+          <CaretRightIcon
+            size={19 * escalaIcone}
+            color={textoSecundario}
+          />
+        </Pressable>
+
+        {!ultimo && (
+          <View
+            style={{
+              height: 1,
+              backgroundColor: borda,
+              marginLeft: 67,
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  // =========================================================
+  // COMPONENTE: CONQUISTA
+  // =========================================================
+
+  function CardConquista({ conquista }) {
+    const Icone = conquista.Icone;
+
+    const progresso = conquista.progresso;
+
+    const progressoValido =
+      progresso !== null && progresso !== undefined;
+
+    const percentual = progressoValido
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            (progresso / conquista.requisito) * 100
+          )
+        )
+      : 0;
+
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: superficie,
+          borderWidth: 1,
+          borderColor: conquista.desbloqueada
+            ? primaria
+            : borda,
+          borderRadius: 15,
+          padding: 13,
+          marginBottom: 10,
+          opacity: conquista.desbloqueada ? 1 : 0.85,
+        }}
+      >
+        {/* ÍCONE */}
+
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            backgroundColor: superficieSecundaria,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icone
+            size={25 * escalaIcone}
+            color={
+              conquista.desbloqueada
+                ? primaria
+                : textoSecundario
+            }
+            weight="fill"
+          />
+        </View>
+
+        {/* INFORMAÇÕES */}
+
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Texto
+              tamanho={14}
+              style={{
+                color: texto,
+                fontWeight: "700",
+              }}
+            >
+              {conquista.nome}
+            </Texto>
+
+            {conquista.desbloqueada && (
+              <CheckCircleIcon
+                size={20 * escalaIcone}
+                color={primaria}
+                weight="fill"
+              />
+            )}
+          </View>
+
+          <Texto
+            tamanho={11}
+            style={{
+              color: textoSecundario,
+              marginTop: 3,
+            }}
+          >
+            {conquista.descricao}
+          </Texto>
+
+          {/* PROGRESSO */}
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 8,
+              marginBottom: 5,
+            }}
+          >
+            <Texto
+              tamanho={10}
+              style={{
+                color: primaria,
+                fontWeight: "700",
+              }}
+            >
+              {progressoValido
+                ? `${progresso.toLocaleString("pt-BR")} / ${conquista.requisito}`
+                : "Em breve"}
+            </Texto>
+          </View>
+
+          {progressoValido && (
+            <View
+              style={{
+                height: 9,
+                backgroundColor: borda,
+                borderRadius: 20,
+                overflow: "hidden",
+                marginTop: 2,
+              }}
+            >
+              <View
+                style={{
+                  width: `${percentual}%`,
+                  height: "100%",
+                backgroundColor: primaria,
+                borderRadius: 20,
+              }}
+              />
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // =========================================================
+  // COMPONENTE: ITEM DE CLUBE
+  // =========================================================
+
+  function ItemTime({ time }) {
+    const selecionado =
+      String(usuarioAutenticado?.time_coracao?.id) ===
+      String(time.id);
+
+    return (
+      <Pressable
+        onPress={() => salvarTimeFavorito(time)}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: superficie,
+          borderWidth: 1,
+          borderColor: selecionado ? primaria : borda,
+          borderRadius: 13,
+          padding: 12,
+          marginBottom: 9,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        {time.logo ? (
+          <Image
+            source={{ uri: time.logo }}
+            style={{
+              width: 42,
+              height: 42,
+            }}
+            resizeMode="contain"
+          />
+        ) : (
+          <View
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 50,
+              backgroundColor: superficieSecundaria,
+            }}
+          />
+        )}
+
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Texto
+            tamanho={14}
+            style={{
+              color: texto,
+              fontWeight: "700",
+            }}
+          >
+            {time.nome}
+          </Texto>
+
+          <Texto
+            tamanho={10}
+            style={{
+              color: textoSecundario,
+              marginTop: 3,
+            }}
+          >
+            {time.pais || "País não informado"}
+          </Texto>
+
+          {time.competicoes?.length > 0 && (
+            <Texto
+              tamanho={10}
+              style={{
+                color: textoSecundario,
+                marginTop: 3,
+              }}
+            >
+              {time.competicoes
+                .map((competicao) =>
+                  typeof competicao === "string"
+                    ? competicao
+                    : competicao.name
+                )
+                .filter(Boolean)
+                .join(" • ")}
+            </Texto>
+          )}
+        </View>
+
+        {selecionado && (
+          <CheckCircleIcon
+            size={22}
+            color={primaria}
+            weight="fill"
+          />
+        )}
+      </Pressable>
+    );
+  }
+
+// =========================================================
+// COMPONENTE: MODAL DE SELEÇÃO DE TIME
+// =========================================================
+
+function ModalTimes() {
+  return (
+    <Modal
+      visible={modalTimesVisivel}
+      transparent={true}
+      animationType="slide"
+      statusBarTranslucent={true}
+      onRequestClose={() => {
+        setModalTimesVisivel(false);
+        setPesquisaTime("");
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          backgroundColor: "rgba(0,0,0,0.65)",
+        }}
+      >
+        {/* CONTAINER DO MODAL */}
+
+        <View
+          style={{
+            height: "85%",
+            backgroundColor: fundo,
+            borderWidth: 1,
+            borderColor: borda,
+            borderTopLeftRadius: 26,
+            borderTopRightRadius: 26,
+            paddingHorizontal: 20,
+            paddingTop: 22,
+            paddingBottom: 15,
+            overflow: "hidden",
+          }}
+        >
+          {/* CABEÇALHO */}
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 18,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Texto
+                tamanho={20}
+                style={{
+                  color: texto,
+                  fontWeight: "800",
+                }}
+              >
+                Meu Time Favorito
+              </Texto>
+
+              <Texto
+                tamanho={12}
+                style={{
+                  color: textoSecundario,
+                  marginTop: 3,
+                }}
+              >
+                Escolha o clube que representa você
+              </Texto>
+            </View>
+
+            <Pressable
+              onPress={() => {
+                setModalTimesVisivel(false);
+                setPesquisaTime("");
+              }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 10,
+                backgroundColor: superficieSecundaria,
+              }}
+            >
+              <Texto
+                tamanho={12}
+                style={{
+                  color: primaria,
+                  fontWeight: "700",
+                }}
+              >
+                Fechar
+              </Texto>
+            </Pressable>
+          </View>
+
+          {/* PESQUISA */}
+
+          <TextInput
+            value={pesquisaTime}
+            onChangeText={setPesquisaTime}
+            placeholder="Pesquisar clube..."
+            placeholderTextColor={textoSecundario}
+            style={{
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: borda,
+              backgroundColor: superficie,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              color: texto,
+              fontFamily: "Inter",
+              fontSize: 14 * fontScale,
+            }}
+          />
+
+          {/* REMOVER FAVORITO */}
+
+          <Pressable
+            onPress={() => salvarTimeFavorito(null)}
+            style={({ pressed }) => ({
+              borderWidth: 1,
+              borderColor: corVermelha,
+              borderRadius: 12,
+              paddingVertical: 12,
+              marginBottom: 12,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Texto
+              tamanho={13}
+              style={{
+                textAlign: "center",
+                color: corVermelha,
+                fontWeight: "600",
+              }}
+            >
+              Remover time favorito
+            </Texto>
+          </Pressable>
+
+          {/* LISTA DE TIMES */}
+
+          <View style={{ flex: 1 }}>
+            {carregandoTimes ? (
+              <View
+                style={{
+                  flex: 1,
+                  paddingVertical: 30,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Texto
+                  tamanho={14}
+                  style={{
+                    color: textoSecundario,
+                  }}
+                >
+                  Carregando clubes...
+                </Texto>
+              </View>
+            ) : (
+              <ScrollView
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {timesFiltrados.map((time) => (
+                  <ItemTime
+                    key={time.id}
+                    time={time}
+                  />
+                ))}
+
+                {timesFiltrados.length === 0 && (
+                  <Texto
+                    tamanho={14}
+                    style={{
+                      color: textoSecundario,
+                      textAlign: "center",
+                      marginTop: 25,
+                    }}
+                  >
+                    Nenhum clube encontrado.
+                  </Texto>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+  // =========================================================
+  // COMPONENTE: MODAL DE FOTO ATUALIZADA
+  // =========================================================
+
+  function ModalSucessoFoto() {
+    return (
+      <Modal
+        visible={modalSucessoVisivel}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalSucessoVisivel(false)}
+      >
+        <Pressable
+          onPress={() => setModalSucessoVisivel(false)}
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.65)",
+            paddingHorizontal: 24,
+          }}
+        >
+          <Pressable
+            onPress={(event) => event.stopPropagation()}
+            style={{
+              width: "100%",
+              alignItems: "center",
+              backgroundColor: superficie,
+              borderWidth: 1,
+              borderColor: borda,
+              borderRadius: 22,
+              paddingHorizontal: 24,
+              paddingVertical: 28,
+            }}
+          >
+            <CheckCircleIcon
+              size={50 * escalaIcone}
+              color={corSucesso}
+              weight="fill"
+            />
+
+            <Texto
+              tamanho={17}
+              style={{
+                color: texto,
+                fontWeight: "700",
+                marginTop: 14,
+                textAlign: "center",
+              }}
+            >
+              Foto de perfil atualizada!
+            </Texto>
+
+            <Texto
+              tamanho={12}
+              style={{
+                color: textoSecundario,
+                marginTop: 6,
+                textAlign: "center",
+              }}
+            >
+              Sua nova foto já está sendo exibida no perfil.
+            </Texto>
+
+            <Pressable
+              onPress={() => setModalSucessoVisivel(false)}
+              style={({ pressed }) => ({
+                marginTop: 22,
+                width: "100%",
+                alignItems: "center",
+                backgroundColor: primaria,
+                borderRadius: 12,
+                paddingVertical: 13,
+                opacity: pressed ? 0.75 : 1,
+              })}
+            >
+              <Texto
+                tamanho={14}
+                style={{
+                  color: "#FFFFFF",
+                  fontWeight: "800",
+                }}
+              >
+                Continuar
+              </Texto>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
+  // =========================================================
+  // TELA
   // =========================================================
 
   return (
     <SafeAreaView
       className="flex-1"
-      style={{ backgroundColor: cores.background }}
+      style={{ backgroundColor: fundo }}
       edges={["top", "bottom"]}
     >
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingBottom: 105,
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
         }}
-        showsVerticalScrollIndicator={false}
       >
+        {/* SIDEBAR */}
+        <SideBar />
+
+        {/* CONTEÚDO DO PERFIL */}
+        <ScrollView
+          className="flex-1"
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: 40,
+            maxWidth: 850,
+            width: "100%",
+            alignSelf: "center",
+          }}
+          showsVerticalScrollIndicator={false}
+        >
         {/* ================================================= */}
-        {/* BOTÃO DE VOLTAR */}
+        {/* CABEÇALHO */}
         {/* ================================================= */}
 
-        <View className="flex-row items-center px-5 pb-3 pt-4">
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingTop: 18,
+            paddingBottom: 20,
+          }}
+        >
           <Pressable
-            className="h-10 w-10 items-center justify-center"
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Voltar"
             style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
-              transform: [{ scale: pressed ? 0.9 : 1 }],
+              width: 42,
+              height: 42,
+              borderRadius: 13,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: superficie,
+              borderWidth: 1,
+              borderColor: borda,
+              opacity: pressed ? 0.65 : 1,
+              transform: [{ scale: pressed ? 0.92 : 1 }],
             })}
           >
             <ArrowLeftIcon
-              size={25 * escalaIcone}
-              color={cores.icon}
-              weight="regular"
+              size={23 * escalaIcone}
+              color={icone}
             />
           </Pressable>
 
-          <Texto
-            tamanho={26}
-            className="ml-3"
-            style={{ color: cores.text }}
-          >
-            Perfil
-          </Texto>
+          <View style={{ marginLeft: 13 }}>
+            <Texto
+              tamanho={25}
+              style={{
+                color: texto,
+                fontWeight: "800",
+              }}
+            >
+              Meu Perfil
+            </Texto>
+
+            <Texto
+              tamanho={12}
+              style={{ color: textoSecundario }}
+            >
+              Sua jornada no Camisa10
+            </Texto>
+          </View>
         </View>
 
         {/* ================================================= */}
-        {/* ÁREA DO PERFIL */}
+        {/* CARD PRINCIPAL DO JOGADOR */}
         {/* ================================================= */}
 
         <View
-          className="mt-3 px-5"
-          style={{ backgroundColor: cores.background }}
+          style={{
+            backgroundColor: superficie,
+            borderWidth: 1,
+            borderColor: borda,
+            borderRadius: 22,
+            padding: 20,
+            overflow: "hidden",
+          }}
         >
-          <View className="items-center">
-            {/* FOTO DE PERFIL */}
+          {/* IDENTIDADE */}
 
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
             <FotoPerfil
               foto={usuarioAutenticado?.avatar_url || null}
               nome={usuario.nome}
-              tamanho={96}
+              tamanho={90}
               onFotoSelecionada={selecionarFoto}
             />
 
-            {/* NOME */}
+            <View style={{ flex: 1, marginLeft: 15 }}>
+              <Texto
+                tamanho={20}
+                style={{
+                  color: texto,
+                  fontWeight: "800",
+                }}
+              >
+                {usuario.nome}
+              </Texto>
 
-            <Texto
-              tamanho={24}
-              className="mt-3 text-center text-texto"
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  alignSelf: "flex-start",
+                  marginTop: 8,
+                  backgroundColor: superficieSecundaria,
+                  borderRadius: 20,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                }}
+              >
+                <StarIcon
+                  size={15}
+                  color={corAmarela}
+                  weight="fill"
+                />
+
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: texto,
+                    marginLeft: 5,
+                    fontWeight: "700",
+                  }}
+                >
+                  Nível {nivelAtual}
+                </Texto>
+              </View>
+
+              {fotoCarregando && (
+                <Texto
+                  tamanho={10}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 5,
+                  }}
+                >
+                  Atualizando foto...
+                </Texto>
+              )}
+            </View>
+
+            {/* EDITAR PERFIL */}
+
+            <Pressable
+              onPress={() => navigation.navigate("EditarPerfil")}
+              style={({ pressed }) => ({
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: superficieSecundaria,
+                opacity: pressed ? 0.65 : 1,
+              })}
             >
-              {usuario.nome}
-            </Texto>
-
-            {/* NÍVEL */}
-
-            <View className="mt-1 flex-row items-center">
-              <StarIcon
-                size={17 * escalaIcone}
-                color="#FFC107"
-                weight="fill"
+              <PencilSimpleIcon
+                size={20}
+                color={icone}
               />
+            </Pressable>
+          </View>
+
+          {/* XP */}
+
+          <View style={{ marginTop: 24 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Texto
+                tamanho={12}
+                style={{
+                  color: textoSecundario,
+                  fontWeight: "700",
+                }}
+              >
+                PROGRESSO DO NÍVEL
+              </Texto>
 
               <Texto
-                tamanho={14}
-                className="ml-1 text-texto-sec"
+                tamanho={12}
+                style={{
+                  color: primaria,
+                  fontWeight: "800",
+                }}
               >
-                Nível {nivelAtual}
+                {xpAtualNivel.toLocaleString("pt-BR")} /{" "}
+                {xpNecessarioNivel.toLocaleString("pt-BR")} XP
               </Texto>
             </View>
 
-            {/* XP */}
+            <View
+              style={{
+                height: 9,
+                backgroundColor: borda,
+                borderRadius: 20,
+                marginTop: 10,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: `${progressoNivel}%`,
+                  height: "100%",
+                  backgroundColor: primaria,
+                  borderRadius: 20,
+                }}
+              />
+            </View>
 
-            <View className="mt-5 w-full">
-              <View className="flex-row flex-wrap justify-between">
-                <Texto
-                  tamanho={11}
-                  className="text-texto-ter"
-                >
-                  XP
-                </Texto>
-
-                <Texto
-                  tamanho={11}
-                  className="text-verde"
-                >
-                  {xpAtualNivel.toLocaleString("pt-BR")}
-                  {" / "}
-                  {xpNecessarioNivel.toLocaleString("pt-BR")}
-                </Texto>
-              </View>
-
-              <View className="mt-2 h-[6px] overflow-hidden rounded-full bg-cartao-borda">
-                <View
-                  className="h-full rounded-full bg-verde"
-                  style={{
-                    width: `${progressoNivel}%`,
-                  }}
-                />
-              </View>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginTop: 9,
+              }}
+            >
+              <Texto
+                tamanho={11}
+                style={{ color: textoSecundario }}
+              >
+                {xpTotal.toLocaleString("pt-BR")} XP acumulados
+              </Texto>
 
               <Texto
-                tamanho={10}
-                className="mt-1 text-right text-texto-ter"
+                tamanho={11}
+                style={{ color: textoSecundario }}
               >
                 {carregandoEstatisticas
-                  ? "Carregando estatísticas..."
+                  ? "Calculando..."
                   : erroEstatisticas
-                    ? "Não foi possível carregar as estatísticas."
-                    : `Faltam ${(
-                        xpProximoNivel - xpTotal
-                      ).toLocaleString("pt-BR")} XP para o próximo nível`}
+                    ? "Estatísticas indisponíveis"
+                    : `${xpRestante.toLocaleString("pt-BR")} XP restantes`}
               </Texto>
             </View>
           </View>
@@ -446,415 +1364,224 @@ export function Perfil() {
         {/* ESTATÍSTICAS */}
         {/* ================================================= */}
 
-        <View className="mt-6 flex-row px-5">
-          {/* QUIZZES */}
+        <View style={{ marginTop: 24 }}>
+          <TituloSecao
+            titulo="Minha jornada"
+            descricao="Seu desempenho dentro do Camisa10"
+          />
 
-          <Pressable
-            className="mr-2 flex-1 items-center rounded-lg border border-cartao-borda bg-cartao px-1 py-4"
-            onPress={() => {
-              // FUTURO:
-              // Abrir histórico de quizzes.
-            }}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.75 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <TrophyIcon
-              size={25 * escalaIcone}
-              color="#00C853"
-              weight="regular"
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <CardEstatistica
+              Icon={TrophyIcon}
+              valor={Number(usuario.quizzes).toLocaleString("pt-BR")}
+              titulo="Quizzes"
+              cor={primaria}
             />
 
-            <Texto
-              tamanho={16}
-              className="mt-1 text-center font-bold text-verde"
-            >
-              {(Number(usuario.quizzes) || 0).toLocaleString("pt-BR")}
-            </Texto>
-
-            <Texto
-              tamanho={11}
-              className="text-center text-texto-ter"
-            >
-              Quizzes
-            </Texto>
-          </Pressable>
-
-          {/* XP TOTAL */}
-
-          <Pressable
-            className="mx-1 flex-1 items-center rounded-lg border border-cartao-borda bg-cartao px-1 py-4"
-            onPress={() => {
-              // FUTURO:
-              // Abrir detalhes de XP.
-            }}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.75 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <StarIcon
-              size={25 * escalaIcone}
-              color="#FFC107"
-              weight="fill"
+            <CardEstatistica
+              Icon={StarIcon}
+              valor={xpTotal.toLocaleString("pt-BR")}
+              titulo="XP Total"
+              cor={corAmarela}
             />
 
-            <Texto
-              tamanho={16}
-              className="mt-1 text-center font-bold text-verde"
-            >
-              {xpTotal.toLocaleString("pt-BR")}
-            </Texto>
-
-            <Texto
-              tamanho={11}
-              className="text-center text-texto-ter"
-            >
-              XP Total
-            </Texto>
-          </Pressable>
-
-          {/* SEQUÊNCIA */}
-
-          <Pressable
-            className="ml-2 flex-1 items-center rounded-lg border border-cartao-borda bg-cartao px-1 py-4"
-            onPress={() => {
-              // FUTURO:
-              // Abrir detalhes da sequência.
-            }}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.75 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <FireIcon
-              size={25 * escalaIcone}
-              color="#E53935"
-              weight="regular"
+            <CardEstatistica
+              Icon={FireIcon}
+              valor={
+                carregandoSequencia
+                  ? "..."
+                  : Number(usuario.sequenciaAtual).toLocaleString("pt-BR")
+              }
+              titulo="Dias seguidos"
+              cor={corVermelha}
             />
-
-            <Texto
-              tamanho={16}
-              className="mt-1 text-center font-bold text-verde"
-            >
-              {carregandoSequencia
-                ? "..."
-                : (Number(usuario.sequenciaAtual) || 0).toLocaleString("pt-BR")}
-            </Texto>
-
-            <Texto
-              tamanho={11}
-              className="text-center text-texto-ter"
-            >
-              Sequência Atual
-            </Texto>
-          </Pressable>
+          </View>
         </View>
 
         {/* ================================================= */}
         {/* CONQUISTAS */}
         {/* ================================================= */}
 
-        <View className="mt-7 px-5">
-          <Texto
-            tamanho={18}
-            className="text-texto"
-          >
-            Conquistas
-          </Texto>
-
-          {conquistas.map((conquista) => {
-            const Icone = conquista.Icone;
-
-            return (
-              <Pressable
-                key={conquista.id}
-                className={`mt-2 flex-row items-center rounded-lg border bg-cartao px-3 py-3 ${
-                  conquista.desbloqueada
-                    ? "border-verde"
-                    : "border-cartao-borda"
-                }`}
-                onPress={() => {
-                  // FUTURO:
-                  // Poderemos abrir os detalhes da conquista.
+        <View style={{ marginTop: 28 }}>
+          <TituloSecao
+            titulo="Conquistas"
+            descricao="Desbloqueie objetivos e mostre sua habilidade"
+            direita={
+              <View
+                style={{
+                  backgroundColor: superficieSecundaria,
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
                 }}
-                style={({ pressed }) => ({
-                  opacity: pressed
-                    ? 0.75
-                    : conquista.desbloqueada
-                      ? 1
-                      : 0.55,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                })}
               >
-                {/* ÍCONE */}
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: primaria,
+                    fontWeight: "800",
+                  }}
+                >
+                  {conquistasDesbloqueadas} / {conquistas.length}
+                </Texto>
+              </View>
+            }
+          />
 
-                <View className="h-10 w-10 items-center justify-center rounded-md bg-cartao-borda">
-                  <Icone
-                    size={24 * escalaIcone}
-                    color={
-                      conquista.desbloqueada
-                        ? "#00C853"
-                        : "#6F7B83"
-                    }
-                    weight="fill"
-                  />
-                </View>
-
-                {/* INFORMAÇÕES */}
-
-                <View className="ml-3 flex-1">
-                  <Texto
-                    tamanho={14}
-                    className={
-                      conquista.desbloqueada
-                        ? "text-texto"
-                        : "text-texto-ter"
-                    }
-                  >
-                    {conquista.nome}
-                  </Texto>
-
-                  <Texto
-                    tamanho={11}
-                    className="text-texto-ter"
-                  >
-                    {conquista.descricao}
-                  </Texto>
-
-                  {/* PROGRESSO */}
-
-                  <Texto
-                    tamanho={10}
-                    className={`mt-1 ${
-                      conquista.desbloqueada
-                        ? "text-verde"
-                        : "text-texto-ter"
-                    }`}
-                  >
-                    {conquista.progresso === null
-                      ? "Em breve"
-                      : `${conquista.progresso.toLocaleString("pt-BR")} / ${conquista.requisito.toLocaleString("pt-BR")}`}
-                  </Texto>
-                </View>
-
-                {/* STATUS */}
-
-                {conquista.desbloqueada && (
-                  <View className="ml-2">
-                    <CheckCircleIcon
-                      size={21 * escalaIcone}
-                      color="#00C853"
-                      weight="fill"
-                    />
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
+          {conquistas.map((conquista) => (
+            <CardConquista
+              key={conquista.id}
+              conquista={conquista}
+            />
+          ))}
         </View>
 
         {/* ================================================= */}
         {/* CONFIGURAÇÕES */}
         {/* ================================================= */}
 
-        <View className="mt-7 px-5">
-          <Texto
-            tamanho={18}
-            className="text-texto"
+        <View style={{ marginTop: 28 }}>
+          <TituloSecao
+            titulo="Preferências"
+            descricao="Personalize sua experiência"
+          />
+
+          <View
+            style={{
+              backgroundColor: superficie,
+              borderWidth: 1,
+              borderColor: borda,
+              borderRadius: 17,
+              overflow: "hidden",
+            }}
           >
-            Configurações
-          </Texto>
+            {/* EDITAR PERFIL */}
 
-          {/* EDITAR PERFIL */}
-
-          <View className="mt-2 overflow-hidden rounded-lg border border-cartao-borda bg-cartao">
-            <Pressable
-              className="min-h-16 flex-row items-center px-3 py-3"
+            <ItemConfiguracao
+              Icon={PencilSimpleIcon}
+              titulo="Editar perfil"
+              descricao="Nome, dados pessoais e senha"
               onPress={() => navigation.navigate("EditarPerfil")}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <PencilSimpleIcon
-                size={25 * escalaIcone}
-                color={cores.icon}
-                weight="regular"
-              />
+            />
 
-              <Texto
-                tamanho={14}
-                className="ml-3 flex-1 text-texto"
-              >
-                Editar Perfil
-              </Texto>
-
-              <CaretRightIcon
-                size={19 * escalaIcone}
-                color="#6F7B83"
-              />
-            </Pressable>
-          </View>
-
-          <View className="mt-2 overflow-hidden rounded-lg border border-cartao-borda bg-cartao">
             {/* TIME FAVORITO */}
 
-            <Pressable
-              className="min-h-16 flex-row items-center px-3 py-3"
+            <ItemConfiguracao
+              Icon={SoccerBallIcon}
+              titulo="Meu time favorito"
+              descricao="Personalize seu conteúdo de futebol"
+              valor={usuario.timeFavorito}
               onPress={abrirSeletorTimes}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <SoccerBallIcon
-                size={25 * escalaIcone}
-                color={cores.icon}
-                weight="regular"
-              />
-
-              <Texto
-                tamanho={14}
-                className="ml-3 flex-1 text-texto"
-              >
-                Meu Time Favorito
-              </Texto>
-
-              <Texto
-                tamanho={11}
-                className="mr-1 text-right text-texto-ter"
-              >
-                {usuario.timeFavorito || "Nenhum"}
-              </Texto>
-
-              <CaretRightIcon
-                size={19 * escalaIcone}
-                color="#6F7B83"
-              />
-            </Pressable>
-
-            <View className="h-px bg-cartao-borda" />
+            />
 
             {/* NOTIFICAÇÕES */}
 
-            <Pressable
-              className="min-h-16 flex-row items-center px-3 py-3"
+            <ItemConfiguracao
+              Icon={BellIcon}
+              titulo="Notificações"
+              descricao="Alertas e novidades"
+              valor={usuario.notificacoes}
               onPress={() => {
                 // FUTURO:
                 // Configuração de notificações.
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <BellIcon
-                size={25 * escalaIcone}
-                color={cores.icon}
-                weight="regular"
-              />
-
-              <Texto
-                tamanho={14}
-                className="ml-3 flex-1 text-texto"
-              >
-                Notificações
-              </Texto>
-
-              <Texto
-                tamanho={11}
-                className="mr-1 text-texto-ter"
-              >
-                {usuario.notificacoes || "Desativadas"}
-              </Texto>
-
-              <CaretRightIcon
-                size={19 * escalaIcone}
-                color="#6F7B83"
-              />
-            </Pressable>
-
-            <View className="h-px bg-cartao-borda" />
+            />
 
             {/* ACESSIBILIDADE */}
 
-            <Pressable
-              className="min-h-16 flex-row items-center px-3 py-3"
+            <ItemConfiguracao
+              Icon={PersonArmsSpreadIcon}
+              titulo="Acessibilidade"
+              descricao="Texto, contraste e visualização"
               onPress={() => navigation.navigate("Acessibilidade")}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <PersonArmsSpreadIcon
-                size={25 * escalaIcone}
-                color={cores.icon}
-                weight="regular"
-              />
-
-              <Texto
-                tamanho={14}
-                className="ml-3 flex-1 text-texto"
-              >
-                Acessibilidade
-              </Texto>
-
-              <Texto
-                tamanho={11}
-                className="mr-1 text-texto-ter"
-              >
-                {usuario.acessibilidade || "Ver mais"}
-              </Texto>
-
-              <CaretRightIcon
-                size={19 * escalaIcone}
-                color="#6F7B83"
-              />
-            </Pressable>
-
-            <View className="h-px bg-cartao-borda" />
+            />
 
             {/* TEMA */}
 
             <Pressable
-              className="min-h-16 flex-row items-center px-3 py-3"
               onPress={() =>
-                alterarTema(temaAtivo === "dark" ? "light" : "dark")
+                alterarTema(
+                  temaAtivo === "dark" ? "light" : "dark"
+                )
               }
               style={({ pressed }) => ({
+                minHeight: 72,
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 15,
+                paddingVertical: 12,
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <PaletteIcon
-                size={25 * escalaIcone}
-                color={cores.icon}
-                weight="regular"
-              />
-
-              <Texto
-                tamanho={14}
-                className="ml-3 flex-1 text-texto"
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: superficieSecundaria,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                Tema
-              </Texto>
+                <PaletteIcon
+                  size={22 * escalaIcone}
+                  color={icone}
+                />
+              </View>
+
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Texto
+                  tamanho={14}
+                  style={{
+                    color: texto,
+                    fontWeight: "600",
+                  }}
+                >
+                  Aparência
+                </Texto>
+
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 3,
+                  }}
+                >
+                  Alternar tema claro e escuro
+                </Texto>
+              </View>
 
               <Texto
                 tamanho={11}
-                className="mr-3 text-texto-ter"
+                style={{
+                  color: textoSecundario,
+                  marginRight: 10,
+                }}
               >
-                {usuario.tema || "Escuro"}
+                {temaAtivo === "dark" ? "Escuro" : "Claro"}
               </Texto>
 
+              {/* SWITCH VISUAL */}
+
               <View
-                className="h-[22px] w-[42px] justify-center rounded-full px-1"
                 style={{
+                  width: 43,
+                  height: 24,
+                  borderRadius: 20,
+                  justifyContent: "center",
+                  paddingHorizontal: 3,
                   backgroundColor:
                     temaAtivo === "dark"
-                      ? cores.primary
-                      : cores.border,
+                      ? primaria
+                      : borda,
                 }}
               >
                 <View
-                  className="h-[18px] w-[18px] rounded-full bg-white"
                   style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 20,
+                    backgroundColor: "#FFFFFF",
                     alignSelf:
                       temaAtivo === "dark"
                         ? "flex-end"
@@ -870,9 +1597,8 @@ export function Perfil() {
         {/* SAIR DA CONTA */}
         {/* ================================================= */}
 
-        <View className="mt-6 px-5">
+        <View style={{ marginTop: 26 }}>
           <Pressable
-            className="min-h-14 flex-row items-center justify-between rounded-lg border border-vermelho px-3 py-3"
             onPress={async () => {
               try {
                 await sair();
@@ -882,232 +1608,71 @@ export function Perfil() {
                   routes: [{ name: "Login" }],
                 });
               } catch (error) {
-                console.log("Erro ao sair da conta:", error.message);
+                console.log(
+                  "Erro ao sair da conta:",
+                  error.message
+                );
               }
             }}
             style={({ pressed }) => ({
+              minHeight: 56,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: superficie,
+              borderWidth: 1,
+              borderColor: corVermelha,
+              borderRadius: 15,
+              paddingHorizontal: 16,
               opacity: pressed ? 0.7 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
             })}
           >
             <Texto
-              tamanho={16}
-              className="text-vermelho"
+              tamanho={14}
+              style={{
+                color: corVermelha,
+                fontWeight: "700",
+              }}
             >
-              Sair da Conta
+              Sair da conta
             </Texto>
 
             <SignOutIcon
-              size={24 * escalaIcone}
-              color="#E53935"
-              weight="regular"
+              size={23 * escalaIcone}
+              color={corVermelha}
             />
           </Pressable>
         </View>
-      </ScrollView>
 
-      {/* ================================================= */}
-      {/* MODAL DE SELEÇÃO DO TIME FAVORITO */}
-      {/* ================================================= */}
+        {/* ================================================= */}
+        {/* RODAPÉ */}
+        {/* ================================================= */}
 
-      <Modal
-        visible={modalTimesVisivel}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalTimesVisivel(false)}
-      >
-        <View className="flex-1 justify-end bg-black/70">
-          <View className="h-[85%] rounded-t-3xl border border-cartao-borda bg-fundo px-5 pt-5">
-            {/* CABEÇALHO */}
-
-            <View className="mb-5 flex-row items-center justify-between">
-              <Texto
-                tamanho={20}
-                className="flex-1 text-texto"
-              >
-                Meu Time Favorito
-              </Texto>
-
-              <Pressable
-                onPress={() => setModalTimesVisivel(false)}
-              >
-                <Texto
-                  tamanho={14}
-                  className="text-verde"
-                >
-                  Fechar
-                </Texto>
-              </Pressable>
-            </View>
-
-            {/* PESQUISA */}
-
-            <TextInput
-              value={pesquisaTime}
-              onChangeText={setPesquisaTime}
-              placeholder="Pesquisar clube..."
-              placeholderTextColor="#6F7B83"
-              className="mb-4 rounded-xl border border-cartao-borda bg-cartao px-4 py-3 text-texto"
-              style={{
-                fontFamily: "Inter",
-                fontSize: 14 * fontScale,
-              }}
-            />
-
-            {/* REMOVER FAVORITO */}
-
-            <Pressable
-              className="mb-3 rounded-xl border border-vermelho px-4 py-3"
-              onPress={() => salvarTimeFavorito(null)}
-            >
-              <Texto
-                tamanho={14}
-                className="text-center text-vermelho"
-              >
-                Remover time favorito
-              </Texto>
-            </Pressable>
-
-            {/* LISTA DE CLUBES */}
-
-            {carregandoTimes ? (
-              <Texto
-                tamanho={14}
-                className="mt-5 text-center text-texto-sec"
-              >
-                Carregando clubes...
-              </Texto>
-            ) : (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                {timesDisponiveis
-                  .filter((time) =>
-                    time.nome
-                      ?.toLowerCase()
-                      .includes(pesquisaTime.toLowerCase().trim())
-                  )
-                  .map((time) => (
-                    <Pressable
-                      key={time.id}
-                      className="mb-2 flex-row items-center rounded-xl border border-cartao-borda bg-cartao px-3 py-3"
-                      onPress={() => salvarTimeFavorito(time)}
-                    >
-                      {time.logo ? (
-                        <Image
-                          source={{ uri: time.logo }}
-                          className="h-10 w-10"
-                          resizeMode="contain"
-                        />
-                      ) : (
-                        <View className="h-10 w-10 rounded-full bg-cartao-borda" />
-                      )}
-
-                      <View className="ml-3 flex-1">
-                        <Texto
-                          tamanho={14}
-                          className="text-texto"
-                        >
-                          {time.nome}
-                        </Texto>
-
-                        <Texto
-                          tamanho={10}
-                          className="mt-1 text-texto-ter"
-                        >
-                          {time.pais || "País não informado"}
-                        </Texto>
-
-                        <Texto
-                          tamanho={10}
-                          className="mt-1 text-texto-ter"
-                        >
-                          {time.competicoes
-                            ?.map((competicao) =>
-                              typeof competicao === "string"
-                                ? competicao
-                                : competicao.name
-                            )
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </Texto>
-                      </View>
-                    </Pressable>
-                  ))}
-
-                {timesDisponiveis.filter((time) =>
-                  time.nome
-                    ?.toLowerCase()
-                    .includes(pesquisaTime.toLowerCase().trim())
-                ).length === 0 && (
-                  <Texto
-                    tamanho={14}
-                    className="mt-5 text-center text-texto-sec"
-                  >
-                    Nenhum clube encontrado.
-                  </Texto>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* ================================================= */}
-      {/* MODAL DE FOTO ATUALIZADA */}
-      {/* ================================================= */}
-
-      <Modal
-        visible={modalSucessoVisivel}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalSucessoVisivel(false)}
-      >
-        <Pressable
-          className="flex-1 items-center justify-center bg-black/70 px-6"
-          onPress={() => setModalSucessoVisivel(false)}
+        <View
+          style={{
+            alignItems: "center",
+            marginTop: 25,
+          }}
         >
-          <Pressable
-            className="w-full items-center rounded-2xl border border-cartao-borda bg-cartao px-5 py-6"
-            onPress={(event) => event.stopPropagation()}
+          <Texto
+            tamanho={10}
+            style={{
+              color: textoSecundario,
+              textAlign: "center",
+            }}
           >
-            <CheckCircleIcon
-              size={48 * escalaIcone}
-              color="#00C853"
-              weight="fill"
-            />
+            Camisa10 • Futebol em um só lugar
+          </Texto>
+        </View>
+            </ScrollView>
+    </View>
 
-            <Texto
-              tamanho={16}
-              className="mt-3 text-center text-texto"
-            >
-              Foto de perfil atualizada!
-            </Texto>
+    {/* MODAIS */}
+    <ModalTimes />
 
-            <Pressable
-              className="mt-5 w-full items-center rounded-xl bg-verde py-3"
-              onPress={() => setModalSucessoVisivel(false)}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Texto
-                tamanho={14}
-                className="font-bold text-white"
-              >
-                Continuar
-              </Texto>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* ================================================= */}
-      {/* BOTTOM NAV */}
-      {/* ================================================= */}
-
-      <BottomNav />
-    </SafeAreaView>
-  );
+    <ModalSucessoFoto />
+  </SafeAreaView>
+);
+  
 }
