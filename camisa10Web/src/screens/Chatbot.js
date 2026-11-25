@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -23,7 +24,9 @@ import { useNavigation } from "@react-navigation/native";
 
 import { useTheme } from "../context/ThemeContext";
 import { useAccessibility } from "../context/AccessibilityContext";
+
 import { Texto } from "../components/texto";
+import { SideBar } from "../components/sideBar";
 
 export function Chatbot() {
   const { cores } = useTheme();
@@ -36,6 +39,7 @@ export function Chatbot() {
   const [mensagens, setMensagens] = useState([]);
   const [digitando, setDigitando] = useState(false);
 
+  // Ajustes de acessibilidade.
   const escalaIcone =
     configuracoes.tamanhoTexto === "grande"
       ? 1.15
@@ -47,104 +51,60 @@ export function Chatbot() {
     ? "AnuphanBold"
     : "Anuphan";
 
-  // Sugestões iniciais para ajudar o usuário a começar uma conversa.
+  // =====================================================
+  // SUGESTÕES DE CONVERSA
+  // =====================================================
+
   const sugestoes = [
     {
       id: "1",
       titulo: "Notícias do meu time",
+      descricao: "Fique por dentro do seu clube.",
       pergunta: "Quais são as últimas notícias do meu time?",
       icone: "newspaper",
     },
     {
       id: "2",
       titulo: "Destaques da rodada",
+      descricao: "Confira os principais acontecimentos.",
       pergunta: "Quem foram os destaques da última rodada?",
       icone: "trophy",
     },
     {
       id: "3",
       titulo: "História do futebol",
+      descricao: "Explore histórias e curiosidades.",
       pergunta: "Conte uma curiosidade sobre a história do futebol.",
       icone: "book",
     },
     {
       id: "4",
       titulo: "Regras do futebol",
+      descricao: "Entenda as regras do jogo.",
       pergunta: "Explique a regra do impedimento.",
       icone: "lightbulb",
     },
   ];
 
-  // Mantém a conversa posicionada na mensagem mais recente.
+  // =====================================================
+  // ROLAGEM AUTOMÁTICA
+  // =====================================================
+
   useEffect(() => {
     if (mensagens.length > 0 || digitando) {
       const timeout = setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
+        scrollRef.current?.scrollToEnd({
+          animated: true,
+        });
       }, 100);
 
       return () => clearTimeout(timeout);
     }
   }, [mensagens, digitando]);
 
-  // ETAPA 2: respostas provisórias para testar a interface.
-  // FUTURA API: substituir esta função pela resposta do backend.
-  function gerarResposta(pergunta) {
-    const texto = pergunta.toLowerCase();
-
-    if (
-      texto.includes("impedimento") ||
-      texto.includes("regra")
-    ) {
-      return (
-        "O impedimento acontece quando um jogador recebe um passe " +
-        "estando mais perto da linha de gol adversária do que a bola " +
-        "e o penúltimo adversário, no momento em que seu companheiro " +
-        "toca na bola. Existem exceções, mas essa é a ideia principal! ⚽"
-      );
-    }
-
-    if (
-      texto.includes("história") ||
-      texto.includes("curiosidade")
-    ) {
-      return (
-        "Uma curiosidade do futebol: a Copa do Mundo masculina começou " +
-        "em 1930, no Uruguai, e a seleção anfitriã conquistou o primeiro " +
-        "título! 🏆"
-      );
-    }
-
-    if (
-      texto.includes("rodada") ||
-      texto.includes("destaques")
-    ) {
-      return (
-        "Vamos falar dos destaques da rodada! Para comentar resultados, " +
-        "gols e atuações com precisão, precisaremos conectar o Camisa10 " +
-        "IA a uma fonte atualizada de dados do futebol."
-      );
-    }
-
-    if (
-      texto.includes("notícia") ||
-      texto.includes("notícias") ||
-      texto.includes("meu time")
-    ) {
-      return (
-        "Posso ajudar você a acompanhar seu time! 📰 " +
-        "Quando conectarmos a API de notícias, poderei apresentar " +
-        "informações atualizadas. Por enquanto, podemos conversar " +
-        "sobre futebol e seus clubes favoritos."
-      );
-    }
-
-    return (
-      "Boa pergunta, torcedor! ⚽ Estou na minha versão de testes. " +
-      "Ainda não estou conectado a uma inteligência artificial real, " +
-      "mas já podemos testar o funcionamento da conversa. " +
-      "Na próxima etapa, integraremos o backend do Camisa10 IA!"
-    );
-  }
+  // =====================================================
+  // ENVIO DE MENSAGENS
+  // =====================================================
 
   async function enviarMensagem(texto = mensagem) {
     const textoEnviado = texto.trim();
@@ -152,7 +112,9 @@ export function Chatbot() {
     if (!textoEnviado || digitando) return;
 
     const gerarId = (prefixo) =>
-      `${prefixo}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      `${prefixo}-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`;
 
     const novaMensagem = {
       id: gerarId("usuario"),
@@ -160,7 +122,11 @@ export function Chatbot() {
       autor: "usuario",
     };
 
-    setMensagens((anteriores) => [...anteriores, novaMensagem]);
+    setMensagens((anteriores) => [
+      ...anteriores,
+      novaMensagem,
+    ]);
+
     setMensagem("");
     setDigitando(true);
 
@@ -189,7 +155,9 @@ export function Chatbot() {
         typeof dados.response !== "string" ||
         !dados.response.trim()
       ) {
-        throw new Error("A API não retornou uma resposta válida.");
+        throw new Error(
+          "A API não retornou uma resposta válida."
+        );
       }
 
       setMensagens((anteriores) => [
@@ -201,7 +169,10 @@ export function Chatbot() {
         },
       ]);
     } catch (erro) {
-      console.error("Erro ao consultar o Camisa10:", erro);
+      console.error(
+        "Erro ao consultar o Camisa10:",
+        erro
+      );
 
       setMensagens((anteriores) => [
         ...anteriores,
@@ -219,267 +190,611 @@ export function Chatbot() {
 
   function selecionarSugestao(pergunta) {
     setMensagem(pergunta);
-
-    // A sugestão é colocada no campo para o usuário revisar e enviar.
   }
 
   const conversaIniciada = mensagens.length > 0;
 
+  // =====================================================
+  // COMPONENTES VISUAIS
+  // =====================================================
+
+  function IconeAssistente({ tamanho = 22 }) {
+    return (
+      <View
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 14,
+          backgroundColor: cores.surfaceSecondary,
+          borderWidth: 1,
+          borderColor: cores.border,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <SoccerBallIcon
+          size={tamanho * escalaIcone}
+          color="#39FF14"
+        />
+      </View>
+    );
+  }
+
+  function IconeSugestao({ tipo }) {
+    let Icone = LightbulbIcon;
+
+    if (tipo === "newspaper") {
+      Icone = SparkleIcon;
+    }
+
+    if (tipo === "trophy") {
+      Icone = SoccerBallIcon;
+    }
+
+    if (tipo === "book") {
+      Icone = LightbulbIcon;
+    }
+
+    if (tipo === "lightbulb") {
+      Icone = LightbulbIcon;
+    }
+
+    return (
+      <View
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: 14,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: cores.surfaceSecondary,
+          borderWidth: 1,
+          borderColor: cores.border,
+        }}
+      >
+        <Icone
+          size={23 * escalaIcone}
+          color="#39FF14"
+        />
+      </View>
+    );
+  }
+
+  // =====================================================
+  // INTERFACE
+  // =====================================================
+
   return (
     <SafeAreaView
-      className="flex-1 bg-fundo"
+      style={{
+        flex: 1,
+        backgroundColor: cores.background,
+      }}
       edges={["top", "bottom"]}
     >
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "android" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-        style={{ flex: 1 }}
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          backgroundColor: cores.background,
+        }}
       >
-        <View className="flex-1 bg-fundo">
+        {/* SIDEBAR */}
+        <SideBar />
 
-          {/* CABEÇALHO */}
-          <View className="min-h-[62px] flex-row items-center border-b border-cartao-borda px-4 py-2">
-            <Pressable
-              onPress={() => navigation.goBack()}
-              className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-cartao"
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.96 : 1 }],
-              })}
-              accessibilityRole="button"
-              accessibilityLabel="Voltar"
-            >
-              <ArrowLeftIcon
-                size={23 * escalaIcone}
-                color={cores.icon}
-              />
-            </Pressable>
-
-            <View
-              className="mr-3 items-center justify-center rounded-full border border-verde-claro bg-cartao"
-              style={{
-                width: 40 * escalaIcone,
-                height: 40 * escalaIcone,
-              }}
-            >
-              <SoccerBallIcon
-                size={23 * escalaIcone}
-                color="#39FF14"
-              />
-            </View>
-
-            <View className="flex-1">
-              <Texto tamanho={18} className="text-texto">
-                Camisa10 IA
-              </Texto>
-
-              <Texto tamanho={12} className="text-verde">
-                Seu assistente de futebol
-              </Texto>
-            </View>
-
-            <View
-              className="items-center justify-center rounded-full bg-cartao"
-              style={{
-                width: 40 * escalaIcone,
-                height: 40 * escalaIcone,
-              }}
-            >
-              <SparkleIcon
-                size={21 * escalaIcone}
-                color="#39FF14"
-              />
-            </View>
-          </View>
-
-          {/* CONTEÚDO DA CONVERSA */}
-          <ScrollView
-            ref={scrollRef}
-            className="flex-1"
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingHorizontal: 20,
-              paddingTop: 28,
-              paddingBottom: 24,
+        {/* ÁREA PRINCIPAL */}
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          <KeyboardAvoidingView
+            style={{
+              flex: 1,
             }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => {
-              if (conversaIniciada || digitando) {
-                scrollRef.current?.scrollToEnd({
-                  animated: true,
-                });
-              }
-            }}
+            behavior={
+              Platform.OS === "android"
+                ? "padding"
+                : undefined
+            }
           >
-            {/* APRESENTAÇÃO INICIAL */}
-            {!conversaIniciada && (
-              <View>
-                <View className="mb-8 items-center">
-                  <View
-                    className="mb-4 items-center justify-center rounded-3xl border border-cartao-borda bg-cartao"
+            <View
+              style={{
+                flex: 1,
+                width: "100%",
+                alignSelf: "center",
+              }}
+            >
+              {/* =====================================================
+                  CABEÇALHO
+              ===================================================== */}
+
+              <View
+                style={{
+                  minHeight: 76,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 28,
+                  borderBottomWidth: 1,
+                  borderBottomColor: cores.border,
+                  backgroundColor: cores.background,
+                }}
+              >
+                <Pressable
+                  onPress={() => navigation.goBack()}
+                  style={({ pressed }) => ({
+                    width: 42,
+                    height: 42,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 13,
+                    backgroundColor: cores.surface,
+                    borderWidth: 1,
+                    borderColor: cores.border,
+                    marginRight: 14,
+                    opacity: pressed ? 0.7 : 1,
+                    transform: [
+                      {
+                        scale: pressed ? 0.96 : 1,
+                      },
+                    ],
+                  })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voltar"
+                >
+                  <ArrowLeftIcon
+                    size={22 * escalaIcone}
+                    color={cores.icon}
+                  />
+                </Pressable>
+
+                <IconeAssistente tamanho={22} />
+
+                <View
+                  style={{
+                    marginLeft: 13,
+                    flex: 1,
+                  }}
+                >
+                  <Texto
+                    tamanho={17}
                     style={{
-                      width: 76 * escalaIcone,
-                      height: 76 * escalaIcone,
+                      color: cores.text,
+                      fontFamily,
                     }}
                   >
-                    <SoccerBallIcon
-                      size={42 * escalaIcone}
-                      color="#39FF14"
-                    />
-                  </View>
-
-                  <Texto
-                    tamanho={24}
-                    className="mb-2 text-center text-texto"
-                  >
-                    Fala, torcedor!
+                    Camisa10 IA
                   </Texto>
 
-                  <Texto
-                    tamanho={14}
-                    className="max-w-[290px] text-center leading-6 text-texto-sec"
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 3,
+                    }}
                   >
-                    Sou o Camisa10 IA, seu parceiro para conversar sobre futebol.
-                    O que vamos discutir hoje?
-                  </Texto>
-                </View>
-
-                {/* CARD DE APRESENTAÇÃO */}
-                <View className="mb-7 rounded-2xl border border-cartao-borda bg-cartao-escuro p-4">
-                  <View className="mb-3 flex-row items-center">
                     <View
-                      className="mr-2 items-center justify-center rounded-lg bg-cartao"
                       style={{
-                        width: 32 * escalaIcone,
-                        height: 32 * escalaIcone,
+                        width: 7,
+                        height: 7,
+                        borderRadius: 10,
+                        backgroundColor: "#39FF14",
+                        marginRight: 7,
+                      }}
+                    />
+
+                    <Texto
+                      tamanho={12}
+                      style={{
+                        color: cores.textSecondary,
+                        fontFamily,
                       }}
                     >
-                      <LightbulbIcon
-                        size={19 * escalaIcone}
-                        color="#39FF14"
-                      />
-                    </View>
-
-                    <Texto tamanho={14} className="flex-1 text-texto">
-                      O que você pode perguntar?
+                      Seu assistente de futebol
                     </Texto>
                   </View>
-
-                  <Texto
-                    tamanho={14}
-                    className="leading-6 text-texto-sec"
-                  >
-                    Descubra curiosidades, explore a história dos clubes,
-                    entenda as regras e converse sobre o mundo da bola.
-                  </Texto>
                 </View>
 
-                {/* SUGESTÕES DE PERGUNTAS */}
-                <View>
-                  <Texto
-                    tamanho={16}
-                    className="mb-3 text-texto"
-                  >
-                    Vamos começar?
-                  </Texto>
+                <View
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 13,
+                    backgroundColor: cores.surface,
+                    borderWidth: 1,
+                    borderColor: cores.border,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <SparkleIcon
+                    size={21 * escalaIcone}
+                    color="#39FF14"
+                  />
+                </View>
+              </View>
 
-                  <View className="gap-3">
-                    {sugestoes.map((sugestao) => (
-                      <Pressable
-                        key={sugestao.id}
-                        onPress={() =>
-                          selecionarSugestao(sugestao.pergunta)
-                        }
-                        className="min-h-[58px] flex-row items-center rounded-2xl border border-cartao-borda bg-cartao px-4 py-3"
-                        style={({ pressed }) => ({
-                          opacity: pressed ? 0.75 : 1,
-                          transform: [
-                            { scale: pressed ? 0.99 : 1 },
-                          ],
-                        })}
-                        accessibilityRole="button"
-                        accessibilityLabel={sugestao.pergunta}
+              {/* =====================================================
+                  CONVERSA
+              ===================================================== */}
+
+              <ScrollView
+                ref={scrollRef}
+                style={{
+                  flex: 1,
+                }}
+                contentContainerStyle={{
+                  flexGrow: 1,
+                  paddingHorizontal: 24,
+                  paddingTop: 32,
+                  paddingBottom: 30,
+                }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                onContentSizeChange={() => {
+                  if (conversaIniciada || digitando) {
+                    scrollRef.current?.scrollToEnd({
+                      animated: true,
+                    });
+                  }
+                }}
+              >
+                {/* =====================================================
+                    APRESENTAÇÃO INICIAL
+                ===================================================== */}
+
+                {!conversaIniciada && (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      width: "100%",
+                      maxWidth: 940,
+                      alignSelf: "center",
+                    }}
+                  >
+                    {/* APRESENTAÇÃO */}
+
+                    <View
+                      style={{
+                        alignItems: "center",
+                        marginBottom: 36,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 96 * escalaIcone,
+                          height: 96 * escalaIcone,
+                          borderRadius: 30,
+                          backgroundColor: cores.surface,
+                          borderWidth: 1,
+                          borderColor: cores.border,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginBottom: 24,
+                        }}
+                      >
+                        <SoccerBallIcon
+                          size={52 * escalaIcone}
+                          color="#39FF14"
+                        />
+                      </View>
+
+                      <Texto
+                        tamanho={32}
+                        style={{
+                          color: cores.text,
+                          textAlign: "center",
+                          fontFamily,
+                          marginBottom: 12,
+                        }}
+                      >
+                        Fala, torcedor!
+                      </Texto>
+
+                      <Texto
+                        tamanho={15}
+                        style={{
+                          color: cores.textSecondary,
+                          textAlign: "center",
+                          lineHeight: 25,
+                          maxWidth: 520,
+                          fontFamily,
+                        }}
+                      >
+                        Sou o Camisa10 IA, seu parceiro para
+                        conversar sobre futebol. O que vamos
+                        discutir hoje?
+                      </Texto>
+                    </View>
+
+                    {/* CARD DE APRESENTAÇÃO */}
+
+                    <View
+                      style={{
+                        borderRadius: 20,
+                        padding: 22,
+                        backgroundColor: cores.surface,
+                        borderWidth: 1,
+                        borderColor: cores.border,
+                        marginBottom: 30,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 12,
+                        }}
                       >
                         <View
-                          className="mr-3 items-center justify-center rounded-xl bg-cartao-escuro"
                           style={{
-                            width: 36 * escalaIcone,
-                            height: 36 * escalaIcone,
+                            width: 38,
+                            height: 38,
+                            borderRadius: 12,
+                            backgroundColor: cores.surfaceSecondary,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
                           }}
                         >
-                          {sugestao.icone === "newspaper" && (
-                            <SparkleIcon
-                              size={20 * escalaIcone}
-                              color="#39FF14"
-                            />
-                          )}
-
-                          {sugestao.icone === "trophy" && (
-                            <SoccerBallIcon
-                              size={20 * escalaIcone}
-                              color="#39FF14"
-                            />
-                          )}
-
-                          {sugestao.icone === "book" && (
-                            <LightbulbIcon
-                              size={20 * escalaIcone}
-                              color="#39FF14"
-                            />
-                          )}
-
-                          {sugestao.icone === "lightbulb" && (
-                            <LightbulbIcon
-                              size={20 * escalaIcone}
-                              color="#39FF14"
-                            />
-                          )}
+                          <LightbulbIcon
+                            size={21 * escalaIcone}
+                            color="#39FF14"
+                          />
                         </View>
 
                         <Texto
-                          tamanho={14}
-                          className="flex-1 text-texto"
-                        >
-                          {sugestao.titulo}
-                        </Texto>
-
-                        <ArrowUpIcon
-                          size={18 * escalaIcone}
-                          color="#A8B2B9"
+                          tamanho={16}
                           style={{
-                            transform: [{ rotate: "45deg" }],
+                            color: cores.text,
+                            fontFamily,
                           }}
-                        />
-                      </Pressable>
-                    ))}
+                        >
+                          Explore o mundo do futebol
+                        </Texto>
+                      </View>
+
+                      <Texto
+                        tamanho={14}
+                        style={{
+                          color: cores.textSecondary,
+                          lineHeight: 24,
+                          fontFamily,
+                        }}
+                      >
+                        Descubra curiosidades, explore a história
+                        dos clubes, entenda as regras e converse
+                        sobre o mundo da bola.
+                      </Texto>
+                    </View>
+
+                    {/* SUGESTÕES */}
+
+                    <View>
+                      <Texto
+                        tamanho={17}
+                        style={{
+                          color: cores.text,
+                          fontFamily,
+                          marginBottom: 16,
+                        }}
+                      >
+                        Por onde vamos começar?
+                      </Texto>
+
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          gap: 14,
+                        }}
+                      >
+                        {sugestoes.map((sugestao) => (
+                          <Pressable
+                            key={sugestao.id}
+                            onPress={() =>
+                              selecionarSugestao(
+                                sugestao.pergunta
+                              )
+                            }
+                            style={({ pressed }) => ({
+                              flexGrow: 1,
+                              flexBasis: 300,
+                              minWidth: 0,
+                              borderRadius: 18,
+                              borderWidth: 1,
+                              borderColor: cores.border,
+                              backgroundColor: cores.surface,
+                              padding: 17,
+                              opacity: pressed ? 0.75 : 1,
+                              transform: [
+                                {
+                                  scale: pressed ? 0.985 : 1,
+                                },
+                              ],
+                            })}
+                            accessibilityRole="button"
+                            accessibilityLabel={
+                              sugestao.pergunta
+                            }
+                          >
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                marginBottom: 14,
+                              }}
+                            >
+                              <IconeSugestao
+                                tipo={sugestao.icone}
+                              />
+
+                              <View
+                                style={{
+                                  marginLeft: "auto",
+                                  width: 30,
+                                  height: 30,
+                                  borderRadius: 10,
+                                  backgroundColor:
+                                    cores.surfaceSecondary,
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <ArrowUpIcon
+                                  size={16}
+                                  color={cores.textSecondary}
+                                  style={{
+                                    transform: [
+                                      {
+                                        rotate: "45deg",
+                                      },
+                                    ],
+                                  }}
+                                />
+                              </View>
+                            </View>
+
+                            <Texto
+                              tamanho={15}
+                              style={{
+                                color: cores.text,
+                                fontFamily,
+                                marginBottom: 5,
+                              }}
+                            >
+                              {sugestao.titulo}
+                            </Texto>
+
+                            <Texto
+                              tamanho={12}
+                              style={{
+                                color: cores.textSecondary,
+                                fontFamily,
+                                lineHeight: 20,
+                              }}
+                            >
+                              {sugestao.descricao}
+                            </Texto>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            )}
+                )}
 
-            {/* MENSAGENS DA CONVERSA */}
-            {conversaIniciada && (
-              <View className="gap-4">
-                {mensagens.map((item) => {
-                  const mensagemUsuario = item.autor === "usuario";
+                {/* =====================================================
+                    MENSAGENS
+                ===================================================== */}
 
-                  return (
-                    <View
-                      key={item.id}
-                      className={`flex-row ${
-                        mensagemUsuario
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
-                      {!mensagemUsuario && (
+                {conversaIniciada && (
+                  <View
+                    style={{
+                      width: "100%",
+                      maxWidth: 900,
+                      alignSelf: "center",
+                      gap: 22,
+                    }}
+                  >
+                    {mensagens.map((item) => {
+                      const mensagemUsuario =
+                        item.autor === "usuario";
+
+                      return (
                         <View
-                          className="mr-2 mt-1 items-center justify-center rounded-full bg-cartao"
+                          key={item.id}
                           style={{
-                            width: 32 * escalaIcone,
-                            height: 32 * escalaIcone,
+                            flexDirection: "row",
+                            alignItems: "flex-end",
+                            justifyContent: mensagemUsuario
+                              ? "flex-end"
+                              : "flex-start",
+                          }}
+                        >
+                          {/* ÍCONE DA IA */}
+
+                          {!mensagemUsuario && (
+                            <View
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 12,
+                                backgroundColor: cores.surface,
+                                borderWidth: 1,
+                                borderColor: cores.border,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginRight: 10,
+                                marginBottom: 3,
+                              }}
+                            >
+                              <SparkleIcon
+                                size={19 * escalaIcone}
+                                color="#39FF14"
+                              />
+                            </View>
+                          )}
+
+                          {/* BALÃO */}
+
+                          <View
+                            style={{
+                              maxWidth: "78%",
+                              borderRadius: 20,
+                              borderBottomRightRadius:
+                                mensagemUsuario ? 5 : 20,
+                              borderBottomLeftRadius:
+                                mensagemUsuario ? 20 : 5,
+                              paddingHorizontal: 18,
+                              paddingVertical: 14,
+                              backgroundColor: mensagemUsuario
+                                ? cores.primary
+                                : cores.surface,
+                              borderWidth: mensagemUsuario
+                                ? 0
+                                : 1,
+                              borderColor: cores.border,
+                            }}
+                          >
+                            <Texto
+                              tamanho={14}
+                              style={{
+                                color: mensagemUsuario
+                                  ? "#FFFFFF"
+                                  : cores.text,
+                                lineHeight: 24,
+                                fontFamily,
+                              }}
+                            >
+                              {item.texto}
+                            </Texto>
+                          </View>
+                        </View>
+                      );
+                    })}
+
+                    {/* INDICADOR DE DIGITAÇÃO */}
+
+                    {digitando && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-end",
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 12,
+                            backgroundColor: cores.surface,
+                            borderWidth: 1,
+                            borderColor: cores.border,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 10,
                           }}
                         >
                           <SparkleIcon
@@ -487,138 +802,186 @@ export function Chatbot() {
                             color="#39FF14"
                           />
                         </View>
-                      )}
 
-                      <View
-                        className={`max-w-[82%] rounded-2xl px-4 py-3 ${
-                          mensagemUsuario
-                            ? "rounded-br-sm bg-verde-escuro"
-                            : "rounded-bl-sm border border-cartao-borda bg-cartao-escuro"
-                        }`}
-                      >
-                        <Texto
-                          tamanho={14}
-                          className="leading-6 text-texto"
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            borderRadius: 18,
+                            borderBottomLeftRadius: 5,
+                            borderWidth: 1,
+                            borderColor: cores.border,
+                            backgroundColor: cores.surface,
+                            paddingHorizontal: 16,
+                            paddingVertical: 13,
+                          }}
                         >
-                          {item.texto}
-                        </Texto>
+                          <ActivityIndicator
+                            size="small"
+                            color="#39FF14"
+                          />
+
+                          <Texto
+                            tamanho={12}
+                            style={{
+                              color: cores.textSecondary,
+                              marginLeft: 10,
+                              fontFamily,
+                            }}
+                          >
+                            Camisa10 IA está digitando...
+                          </Texto>
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
-
-                {/* INDICADOR DE DIGITAÇÃO */}
-                {digitando && (
-                  <View className="flex-row items-center">
-                    <View
-                      className="mr-2 items-center justify-center rounded-full bg-cartao"
-                      style={{
-                        width: 32 * escalaIcone,
-                        height: 32 * escalaIcone,
-                      }}
-                    >
-                      <SparkleIcon
-                        size={19 * escalaIcone}
-                        color="#39FF14"
-                      />
-                    </View>
-
-                    <View className="flex-row items-center rounded-2xl border border-cartao-borda bg-cartao-escuro px-4 py-3">
-                      <ActivityIndicator
-                        size="small"
-                        color="#39FF14"
-                      />
-
-                      <Texto
-                        tamanho={12}
-                        className="ml-2 text-texto-sec"
-                      >
-                        Camisa10 IA está digitando...
-                      </Texto>
-                    </View>
+                    )}
                   </View>
                 )}
-              </View>
-            )}
-          </ScrollView>
+              </ScrollView>
 
-          {/* CAMPO DE MENSAGEM */}
-          <View className="border-t border-cartao-borda bg-fundo px-4 pb-3 pt-3">
-            <View className="flex-row items-end rounded-2xl border border-cartao-borda bg-cartao-escuro p-2">
-              <Pressable
-                onPress={() => {
-                  // FUTURO: permitir anexar imagens ou arquivos.
-                }}
-                className="mb-0.5 items-center justify-center"
-                style={({ pressed }) => ({
-                  width: 36 * escalaIcone,
-                  height: 40 * escalaIcone,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-                accessibilityRole="button"
-                accessibilityLabel="Adicionar anexo"
-              >
-                <PlusIcon
-                  size={23 * escalaIcone}
-                  color="#A8B2B9"
-                />
-              </Pressable>
+              {/* =====================================================
+                  CAMPO DE ENVIO
+              ===================================================== */}
 
-              <TextInput
-                value={mensagem}
-                onChangeText={setMensagem}
-                placeholder="Pergunte sobre futebol..."
-                placeholderTextColor="#6F7B83"
-                multiline
-                maxLength={2000}
-                className="max-h-[150px] min-h-[42px] flex-1 px-2 py-2.5 text-texto"
+              <View
                 style={{
-                  fontFamily,
-                  fontSize: 14 * fontScale,
-                  lineHeight: Math.ceil(14 * fontScale * 1.4),
-                  textAlignVertical: "center",
+                  width: "100%",
+                  borderTopWidth: 1,
+                  borderTopColor: cores.border,
+                  backgroundColor: cores.background,
+                  paddingHorizontal: 24,
+                  paddingTop: 16,
+                  paddingBottom: 12,
                 }}
-                accessibilityLabel="Digite sua pergunta"
-                returnKeyType="default"
-              />
-
-              <Pressable
-                onPress={() => enviarMensagem()}
-                disabled={!mensagem.trim() || digitando}
-                className="mb-0.5 items-center justify-center rounded-xl bg-verde"
-                style={({ pressed }) => ({
-                  width: 40 * escalaIcone,
-                  height: 40 * escalaIcone,
-                  opacity:
-                    !mensagem.trim() || digitando
-                      ? 0.45
-                      : pressed
-                        ? 0.75
-                        : 1,
-                  transform: [
-                    { scale: pressed ? 0.94 : 1 },
-                  ],
-                })}
-                accessibilityRole="button"
-                accessibilityLabel="Enviar mensagem"
               >
-                <ArrowUpIcon
-                  size={23 * escalaIcone}
-                  color="#071018"
-                  weight="bold"
-                />
-              </Pressable>
-            </View>
+                <View
+                  style={{
+                    width: "100%",
+                    maxWidth: 940,
+                    alignSelf: "center",
+                  }}
+                >
+                  {/* INPUT */}
 
-            <Texto
-              tamanho={10}
-              className="mt-2 text-center text-texto-ter"
-            >
-              Camisa10 IA · Seu parceiro no mundo da bola
-            </Texto>
-          </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-end",
+                      borderWidth: 1,
+                      borderColor: cores.border,
+                      borderRadius: 20,
+                      backgroundColor: cores.surface,
+                      padding: 8,
+                    }}
+                  >
+                    {/* ANEXO */}
+
+                    <Pressable
+                      onPress={() => {
+                        // FUTURO:
+                        // Permitir anexar imagens ou arquivos.
+                      }}
+                      style={({ pressed }) => ({
+                        width: 42 * escalaIcone,
+                        height: 42 * escalaIcone,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 13,
+                        marginBottom: 1,
+                        opacity: pressed ? 0.6 : 1,
+                      })}
+                      accessibilityRole="button"
+                      accessibilityLabel="Adicionar anexo"
+                    >
+                      <PlusIcon
+                        size={23 * escalaIcone}
+                        color={cores.textSecondary}
+                      />
+                    </Pressable>
+
+                    {/* TEXTO */}
+
+                    <TextInput
+                      value={mensagem}
+                      onChangeText={setMensagem}
+                      placeholder="Pergunte sobre futebol..."
+                      placeholderTextColor={cores.textTertiary}
+                      multiline
+                      maxLength={2000}
+                      editable={!digitando}
+                      style={{
+                        flex: 1,
+                        minHeight: 44,
+                        maxHeight: 150,
+                        paddingHorizontal: 12,
+                        paddingVertical: 11,
+                        color: cores.text,
+                        fontFamily,
+                        fontSize: 14 * fontScale,
+                        lineHeight: Math.ceil(
+                          14 * fontScale * 1.5
+                        ),
+                        textAlignVertical: "center",
+                        outlineStyle: "none",
+                      }}
+                      accessibilityLabel="Digite sua pergunta"
+                      returnKeyType="default"
+                    />
+
+                    {/* ENVIAR */}
+
+                    <Pressable
+                      onPress={() => enviarMensagem()}
+                      disabled={!mensagem.trim() || digitando}
+                      style={({ pressed }) => ({
+                        width: 44 * escalaIcone,
+                        height: 44 * escalaIcone,
+                        borderRadius: 14,
+                        backgroundColor: cores.primary,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: 1,
+                        opacity:
+                          !mensagem.trim() || digitando
+                            ? 0.4
+                            : pressed
+                              ? 0.75
+                              : 1,
+                        transform: [
+                          {
+                            scale: pressed ? 0.94 : 1,
+                          },
+                        ],
+                      })}
+                      accessibilityRole="button"
+                      accessibilityLabel="Enviar mensagem"
+                    >
+                      <ArrowUpIcon
+                        size={24 * escalaIcone}
+                        color="#071018"
+                        weight="bold"
+                      />
+                    </Pressable>
+                  </View>
+
+                  {/* RODAPÉ */}
+
+                  <Texto
+                    tamanho={11}
+                    style={{
+                      color: cores.textTertiary,
+                      textAlign: "center",
+                      marginTop: 11,
+                      fontFamily,
+                    }}
+                  >
+                    Camisa10 IA · Seu parceiro no mundo da bola
+                  </Texto>
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
