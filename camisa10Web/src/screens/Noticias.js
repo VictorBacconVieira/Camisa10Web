@@ -1,14 +1,13 @@
+
 import { useState, useEffect } from "react";
 
 import {
-  Alert,
-  Linking,
   Pressable,
   ScrollView,
-  Text,
   TextInput,
   View,
   Image,
+  useWindowDimensions,
 } from "react-native";
 
 import {
@@ -20,36 +19,76 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
-import { BottomNav } from "../components/bottomNav";
 import { Texto } from "../components/texto";
+import { SideBar } from "../components/sideBar";
 
 import { useAccessibility } from "../context/AccessibilityContext";
+import { useTheme } from "../context/ThemeContext";
 
 import { obterNoticias } from "../services/authService";
 
 export function Noticias() {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
 
-  const { fontScale, configuracoes } = useAccessibility();
+  const { cores } = useTheme();
 
-  const escalaIcone =
-    configuracoes.tamanhoTexto === "grande"
-      ? 1.15
-      : configuracoes.tamanhoTexto === "muitoGrande"
-        ? 1.3
-        : 1;
+  const {
+    fontScale,
+    configuracoes,
+  } = useAccessibility();
 
-  // =========================================================
-  // ESTADOS DA TELA
-  // =========================================================
+  // =====================================================
+  // RESPONSIVIDADE
+  // =====================================================
+
+  const telaGrande = width >= 1100;
+  const telaMedia = width >= 750;
+
+  const larguraConteudo = telaGrande ? 1200 : 900;
+
+  // =====================================================
+  // CORES
+  // =====================================================
+
+  const fundo = cores.background;
+  const superficie = cores.surface;
+  const superficieSecundaria = cores.surfaceSecondary;
+  const borda = cores.border;
+  const texto = cores.text;
+  const textoSecundario = cores.textSecondary;
+  const textoTerciario = cores.textTertiary;
+  const primaria = cores.primary;
+  const icone = cores.icon;
+
+  // =====================================================
+  // ESTADOS
+  // =====================================================
 
   const [categoriaAtiva, setCategoriaAtiva] = useState("Todas");
   const [busca, setBusca] = useState("");
+
   const [noticias, setNoticias] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
+
   const [timeFavorito, setTimeFavorito] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
+
+  // =====================================================
+  // CATEGORIAS
+  // =====================================================
+
+  const categorias = [
+    "Todas",
+    "Seu Time",
+    "Mercado da Bola",
+    "Jogos",
+  ];
+
+  // =====================================================
+  // CARREGAR NOTÍCIAS
+  // =====================================================
 
   useEffect(() => {
     async function carregarNoticias() {
@@ -63,10 +102,11 @@ export function Noticias() {
 
         const resultado = await obterNoticias(categoria);
 
-        setNoticias(resultado.noticias || []);
-        setTimeFavorito(resultado.time || null);
+        setNoticias(resultado?.noticias || []);
+        setTimeFavorito(resultado?.time || null);
       } catch (error) {
         console.error("Erro ao carregar notícias:", error);
+
         setErro(error.message);
         setNoticias([]);
       } finally {
@@ -77,35 +117,35 @@ export function Noticias() {
     carregarNoticias();
   }, [categoriaAtiva, atualizacao]);
 
-  // =========================================================
-  // CATEGORIAS
-  // =========================================================
+  // =====================================================
+  // FILTRAR NOTÍCIAS
+  // =====================================================
 
-  const categorias = [
-    "Todas",
-    "Seu Time",
-    "Mercado da Bola",
-    "Jogos",
-  ];
-
-  // =========================================================
-  // FILTRO E PESQUISA
-  // =========================================================
+  function normalizarTexto(valor) {
+    return (valor || "")
+      .toString()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
 
   const noticiasFiltradas = noticias.filter((noticia) => {
-    const termo = busca.trim().toLowerCase();
+    const termo = normalizarTexto(busca.trim());
 
-    const titulo = (noticia.titulo || "").toLowerCase();
-    const fonte = (noticia.fonte || "").toLowerCase();
-    const descricao = (noticia.descricao || "").toLowerCase();
+    const titulo = normalizarTexto(noticia.titulo);
+    const fonte = normalizarTexto(noticia.fonte);
+    const descricao = normalizarTexto(noticia.descricao);
 
-    const correspondeBusca =
+    return (
       titulo.includes(termo) ||
       fonte.includes(termo) ||
-      descricao.includes(termo);
-
-    return correspondeBusca;
+      descricao.includes(termo)
+    );
   });
+
+  // =====================================================
+  // FORMATAR TEMPO
+  // =====================================================
 
   function formatarTempo(data) {
     if (!data) return "";
@@ -120,16 +160,29 @@ export function Noticias() {
     if (diferenca < 60) return "Agora há pouco";
 
     const minutos = Math.floor(diferenca / 60);
-    if (minutos < 60) return `Há ${minutos} min`;
+
+    if (minutos < 60) {
+      return `Há ${minutos} min`;
+    }
 
     const horas = Math.floor(minutos / 60);
-    if (horas < 24) return `Há ${horas}h`;
+
+    if (horas < 24) {
+      return `Há ${horas}h`;
+    }
 
     const dias = Math.floor(horas / 24);
-    if (dias < 7) return `Há ${dias} dias`;
+
+    if (dias < 7) {
+      return `Há ${dias} dias`;
+    }
 
     return publicada.toLocaleDateString("pt-BR");
   }
+
+  // =====================================================
+  // CATEGORIA DE EXIBIÇÃO
+  // =====================================================
 
   function obterCategoriaExibicao() {
     const categoriasExibicao = {
@@ -139,481 +192,800 @@ export function Noticias() {
       jogos: "Jogos",
     };
 
-    return categoriasExibicao[categoriaAtiva.toLowerCase()] || "Futebol";
+    return (
+      categoriasExibicao[
+        categoriaAtiva.toLowerCase()
+      ] || "Futebol"
+    );
   }
 
-  // =========================================================
-  // ABRIR NOTÍCIA NO NAVEGADOR
-  // =========================================================
+  // =====================================================
+  // ABRIR NOTÍCIA
+  // =====================================================
 
   async function abrirNoticia(noticia) {
     if (!noticia?.url) {
-      Alert.alert(
-        "Link indisponível",
-        "Não foi possível encontrar o endereço original desta notícia."
+      console.warn(
+        "Link indisponível para esta notícia."
       );
       return;
     }
 
     try {
-      const podeAbrir = await Linking.canOpenURL(noticia.url);
-
-      if (!podeAbrir) {
-        throw new Error("URL não suportada.");
-      }
-
       await Linking.openURL(noticia.url);
     } catch (error) {
-      console.error("Erro ao abrir notícia:", error);
-
-      Alert.alert(
-        "Não foi possível abrir",
-        "Tente acessar esta notícia novamente mais tarde."
+      console.error(
+        "Erro ao abrir notícia:",
+        error
       );
     }
   }
 
-  // =========================================================
-  // ESTILOS DAS CATEGORIAS
-  // =========================================================
+  // =====================================================
+  // ESTILOS BASE
+  // =====================================================
 
-  function selecionarCategoria(categoria) {
-    setCategoriaAtiva(categoria);
+  const cardStyle = {
+    backgroundColor: superficie,
+    borderWidth: 1,
+    borderColor: borda,
+    borderRadius: 16,
+    overflow: "hidden",
+  };
+
+  const tituloSecao = {
+    color: texto,
+    fontSize: 21 * fontScale,
+    fontWeight: "700",
+  };
+
+  // =====================================================
+  // CARD DE ESTADO
+  // =====================================================
+
+  function CardMensagem({ titulo, descricao }) {
+    return (
+      <View
+        style={{
+          ...cardStyle,
+          padding: 22,
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 130,
+        }}
+      >
+        <Texto
+          tamanho={14}
+          style={{
+            color: texto,
+            textAlign: "center",
+          }}
+        >
+          {titulo}
+        </Texto>
+
+        {descricao ? (
+          <Texto
+            tamanho={12}
+            style={{
+              color: textoSecundario,
+              textAlign: "center",
+              marginTop: 7,
+            }}
+          >
+            {descricao}
+          </Texto>
+        ) : null}
+      </View>
+    );
   }
 
-  // O destaque é o primeiro resultado filtrado.
+  // =====================================================
+  // INFORMAÇÕES DA NOTÍCIA
+  // =====================================================
+
+  function InformacoesNoticia({ noticia, destaque = false }) {
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 6,
+          marginTop: destaque ? 12 : 8,
+        }}
+      >
+        {noticia.url ? (
+          <Image
+            source={{
+              uri: `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(
+                noticia.url
+              )}&sz=64`,
+            }}
+            style={{
+              width: destaque ? 18 : 15,
+              height: destaque ? 18 : 15,
+              borderRadius: 4,
+            }}
+            resizeMode="contain"
+          />
+        ) : null}
+
+        <Texto
+          tamanho={destaque ? 12 : 10}
+          style={{
+            color: textoSecundario,
+          }}
+        >
+          {noticia.fonte || "Fonte"}
+        </Texto>
+
+        <Texto
+          tamanho={destaque ? 12 : 10}
+          style={{
+            color: textoTerciario,
+          }}
+        >
+          •
+        </Texto>
+
+        <Texto
+          tamanho={destaque ? 12 : 10}
+          style={{
+            color: textoSecundario,
+          }}
+        >
+          {formatarTempo(noticia.publicado_em)}
+        </Texto>
+      </View>
+  );
+  }
+
+  // =====================================================
+  // CARD DE DESTAQUE
+  // =====================================================
+
+  function CardDestaque({ noticia }) {
+    return (
+      <Pressable
+        onPress={() => abrirNoticia(noticia)}
+        accessibilityRole="button"
+        style={({ pressed }) => ({
+          ...cardStyle,
+          opacity: pressed ? 0.85 : 1,
+          transform: [
+            { scale: pressed ? 0.985 : 1 },
+          ],
+        })}
+      >
+        {/* IMAGEM */}
+
+        {noticia.imagem ? (
+          <Image
+            source={{ uri: noticia.imagem }}
+            style={{
+              width: "100%",
+              height: telaGrande ? 280 : 220,
+              backgroundColor: superficieSecundaria,
+            }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            style={{
+              height: 220,
+              backgroundColor: superficieSecundaria,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Texto
+              tamanho={13}
+              style={{ color: textoSecundario }}
+            >
+              Imagem indisponível
+            </Texto>
+          </View>
+        )}
+
+        {/* CONTEÚDO */}
+
+        <View style={{ padding: telaMedia ? 22 : 16 }}>
+          <Texto
+            tamanho={12}
+            style={{
+              color: primaria,
+              fontWeight: "700",
+              marginBottom: 10,
+            }}
+          >
+            {obterCategoriaExibicao().toUpperCase()}
+          </Texto>
+
+          <Texto
+            tamanho={telaMedia ? 22 : 18}
+            style={{
+              color: texto,
+              fontWeight: "700",
+              lineHeight: telaMedia ? 31 : 26,
+            }}
+          >
+            {noticia.titulo || "Notícia sem título"}
+          </Texto>
+
+          {noticia.descricao ? (
+            <Texto
+              tamanho={14}
+              style={{
+                color: textoSecundario,
+                marginTop: 10,
+                lineHeight: 22,
+              }}
+            >
+              {noticia.descricao}
+            </Texto>
+          ) : null}
+
+          <InformacoesNoticia
+            noticia={noticia}
+            destaque
+          />
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 18,
+            }}
+          >
+            <Texto
+              tamanho={13}
+              style={{
+                color: primaria,
+                fontWeight: "700",
+              }}
+            >
+              Ler notícia
+            </Texto>
+
+            <CaretRightIcon
+              size={18}
+              color={primaria}
+              weight="bold"
+            />
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // =====================================================
+  // CARD DE NOTÍCIA RECENTE
+  // =====================================================
+
+  function CardNoticia({ noticia, index }) {
+    return (
+      <Pressable
+        key={`${noticia.url || noticia.titulo}-${index}`}
+        onPress={() => abrirNoticia(noticia)}
+        accessibilityRole="button"
+        style={({ pressed }) => ({
+          width: "100%",
+          flexDirection: "row",
+          backgroundColor: superficie,
+          borderWidth: 1,
+          borderColor: borda,
+          borderRadius: 14,
+          overflow: "hidden",
+          marginBottom: 14,
+          opacity: pressed ? 0.85 : 1,
+          transform: [
+            { scale: pressed ? 0.985 : 1 },
+          ],
+        })}
+      >
+        {/* IMAGEM */}
+
+        {noticia.imagem ? (
+          <Image
+            source={{ uri: noticia.imagem }}
+            style={{
+              width: telaMedia ? 190 : 115,
+              height: telaMedia ? 145 : 120,
+              backgroundColor: superficieSecundaria,
+            }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            style={{
+              width: telaMedia ? 190 : 115,
+              height: telaMedia ? 145 : 120,
+              backgroundColor: superficieSecundaria,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 5,
+            }}
+          >
+            <Texto
+              tamanho={10}
+              style={{
+                color: textoSecundario,
+                textAlign: "center",
+              }}
+            >
+              Imagem indisponível
+            </Texto>
+          </View>
+        )}
+
+        {/* CONTEÚDO */}
+
+        <View
+          style={{
+            flex: 1,
+            padding: telaMedia ? 16 : 11,
+            justifyContent: "center",
+            minWidth: 0,
+          }}
+        >
+          <Texto
+            tamanho={11}
+            style={{
+              color: primaria,
+              fontWeight: "700",
+              marginBottom: 5,
+            }}
+          >
+            {obterCategoriaExibicao()}
+          </Texto>
+
+          <Texto
+            tamanho={telaMedia ? 15 : 13}
+            style={{
+              color: texto,
+              fontWeight: "600",
+              lineHeight: telaMedia ? 22 : 19,
+            }}
+          >
+            {noticia.titulo || "Notícia sem título"}
+          </Texto>
+
+          <InformacoesNoticia noticia={noticia} />
+        </View>
+
+        {/* SETA */}
+
+        <View
+          style={{
+            justifyContent: "center",
+            paddingHorizontal: 10,
+          }}
+        >
+          <CaretRightIcon
+            size={18}
+            color={textoSecundario}
+            weight="bold"
+          />
+        </View>
+      </Pressable>
+    );
+  }
+
+  // =====================================================
+  // NOTÍCIAS
+  // =====================================================
+
   const noticiaDestaque = noticiasFiltradas[0];
 
-  // As demais notícias não repetem o destaque.
   const ultimasNoticias = noticiasFiltradas.slice(1);
+
+  // =====================================================
+  // COMPONENTE PRINCIPAL
+  // =====================================================
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fundo"
+      style={{
+        flex: 1,
+        backgroundColor: fundo,
+      }}
       edges={["top", "bottom"]}
     >
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 110 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          backgroundColor: fundo,
+        }}
       >
-        {/* ================================================= */}
-        {/* CABEÇALHO */}
-        {/* ================================================= */}
+        {/* SIDEBAR */}
 
-        <View className="min-h-[62px] flex-row items-center px-4 py-2">
-          <Pressable
-            className="h-10 w-10 items-center justify-center"
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
-              transform: [{ scale: pressed ? 0.9 : 1 }],
-            })}
-          >
-            <ArrowLeftIcon
-              size={25 * escalaIcone}
-              color="#F5F7F8"
-              weight="regular"
-            />
-          </Pressable>
+        <SideBar />
 
-          <Texto
-            tamanho={26}
-            className="ml-3 text-texto"
-          >
-            Notícias
-          </Texto>
-        </View>
+        {/* ÁREA PRINCIPAL */}
 
-        {/* ================================================= */}
-        {/* PESQUISA */}
-        {/* ================================================= */}
-
-        <View className="px-4">
-          <View
-            className="min-h-[48px] flex-row items-center rounded-xl border border-cartao-borda bg-cartao px-4 py-2"
-          >
-            <MagnifyingGlassIcon
-              size={21 * escalaIcone}
-              color="#A8B2B9"
-              weight="regular"
-            />
-
-            <TextInput
-              value={busca}
-              onChangeText={setBusca}
-              placeholder="Buscar notícias"
-              placeholderTextColor="#6F7B83"
-              className="ml-3 flex-1 text-texto"
-              style={{
-                fontFamily: configuracoes.textoNegrito
-                  ? "AnuphanBold"
-                  : "Inter",
-                fontSize: 14 * fontScale,
-                lineHeight: Math.ceil(18 * fontScale),
-                paddingVertical: 4,
-              }}
-              returnKeyType="search"
-              accessibilityLabel="Buscar notícias"
-            />
-          </View>
-        </View>
-
-        {/* ================================================= */}
-        {/* CATEGORIAS */}
-        {/* ================================================= */}
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mt-5"
-          contentContainerStyle={{ paddingHorizontal: 16 }}
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+          }}
         >
-          {categorias.map((categoria) => {
-            const ativa = categoriaAtiva === categoria;
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingHorizontal: telaMedia ? 28 : 16,
+              paddingTop: 24,
+              paddingBottom: 120,
+              width: "100%",
+              maxWidth: larguraConteudo,
+              alignSelf: "center",
+            }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* ================================================= */}
+            {/* CABEÇALHO */}
+            {/* ================================================= */}
 
-            return (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 25,
+              }}
+            >
               <Pressable
-                key={categoria}
-                className={`mr-2 rounded-full px-5 py-2.5 ${
-                  ativa
-                    ? "bg-verde"
-                    : "border border-cartao-borda bg-cartao"
-                }`}
-                onPress={() => selecionarCategoria(categoria)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: ativa }}
+                onPress={() => navigation.goBack()}
                 style={({ pressed }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                  transform: [{ scale: pressed ? 0.95 : 1 }],
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  backgroundColor: superficie,
+                  borderWidth: 1,
+                  borderColor: borda,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 14,
+                  opacity: pressed ? 0.65 : 1,
+                  transform: [
+                    { scale: pressed ? 0.92 : 1 },
+                  ],
                 })}
               >
-                <Texto
-                  tamanho={14}
-                  className={`${
-                    ativa ? "font-bold text-texto" : "text-texto"
-                  }`}
-                >
-                  {categoria}
-                </Texto>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* ================================================= */}
-        {/* DESTAQUE */}
-        {/* ================================================= */}
-
-        <View className="mt-6 px-4">
-          <Texto
-            tamanho={20}
-            className="mb-3 text-texto"
-          >
-            Destaque
-          </Texto>
-
-          {carregando ? (
-            <View className="rounded-xl border border-cartao-borda bg-cartao p-5">
-              <Texto
-                tamanho={14}
-                className="text-texto-sec"
-              >
-                Carregando notícias...
-              </Texto>
-            </View>
-          ) : erro ? (
-            <View className="rounded-xl border border-cartao-borda bg-cartao p-5">
-              <Texto
-                tamanho={14}
-                className="text-texto-sec"
-              >
-                Não foi possível carregar as notícias.
-              </Texto>
-
-              <Pressable
-                className="mt-3 self-start rounded-lg bg-verde px-4 py-2"
-                onPress={() => setCategoriaAtiva((atual) => atual)}
-              >
-                <Texto
-                  tamanho={14}
-                  className="font-bold text-texto"
-                >
-                  Tentar novamente
-                </Texto>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {carregando && (
-            <View className="rounded-xl border border-cartao-borda bg-cartao p-5">
-              <Texto
-                tamanho={14}
-                className="text-texto-sec"
-              >
-                Carregando notícias
-              </Texto>
-            </View>
-          )}
-
-          {erro && !carregando && (
-            <View className="rounded-xl border border-cartao-borda bg-cartao p-5">
-              <Texto
-                tamanho={14}
-                className="text-texto-sec"
-              >
-                Não foi possível carregar as notícias.
-              </Texto>
-
-              <Pressable
-                className="mt-3 self-start rounded-lg bg-verde px-4 py-2"
-                onPress={() => setAtualizacao((valor) => valor + 1)}
-              >
-                <Texto
-                  tamanho={14}
-                  className="font-bold text-texto"
-                >
-                  Tentar novamente
-                </Texto>
-              </Pressable>
-            </View>
-          )}
-
-          {!carregando && !erro && noticiaDestaque ? (
-            <Pressable
-              className="overflow-hidden rounded-[12px] bg-cartao"
-              onPress={() => abrirNoticia(noticiaDestaque)}
-              accessibilityRole="button"
-              accessibilityLabel={`Abrir notícia: ${noticiaDestaque.titulo}`}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-              })}
-            >
-              {noticiaDestaque.imagem ? (
-                <Image
-                  source={{ uri: noticiaDestaque.imagem }}
-                  className="h-[180px] w-full"
-                  resizeMode="cover"
+                <ArrowLeftIcon
+                  size={23}
+                  color={icone}
+                  weight="regular"
                 />
-              ) : (
-                <View className="h-[180px] w-full bg-cartao-borda items-center justify-center px-3">
-                  <Texto
-                    tamanho={12}
-                    className="text-texto-ter text-center"
-                  >
-                    Imagem indisponível
-                  </Texto>
-                </View>
-              )}
+              </Pressable>
 
-              <View className="p-4">
+              <View style={{ flex: 1 }}>
                 <Texto
                   tamanho={12}
-                  className="mb-2 font-bold text-verde"
+                  style={{
+                    color: primaria,
+                    fontWeight: "700",
+                    letterSpacing: 2,
+                  }}
                 >
-                  {obterCategoriaExibicao()}
+                  CENTRAL DO FUTEBOL
                 </Texto>
 
                 <Texto
-                  tamanho={18}
-                  className="font-bold text-texto"
-                  style={{ flexShrink: 1 }}
+                  tamanho={telaMedia ? 30 : 25}
+                  style={{
+                    color: texto,
+                    fontWeight: "700",
+                    marginTop: 4,
+                  }}
                 >
-                  {noticiaDestaque.titulo}
+                  Notícias
                 </Texto>
 
-                <View className="mt-3 flex-row items-center flex-wrap">
-                  {noticiaDestaque.url && (
-                    <Image
-                      source={{
-                        uri: `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(noticiaDestaque.url)}&sz=64`,
-                      }}
-                      className="h-5 w-5 rounded-full"
-                      resizeMode="contain"
-                    />
-                  )}
-
-                  <Texto
-                    tamanho={12}
-                    className="ml-2 text-texto-sec"
-                  >
-                    {noticiaDestaque.fonte}
-                  </Texto>
-
-                  <Texto
-                    tamanho={12}
-                    className="mx-2 text-texto-ter"
-                  >
-                    •
-                  </Texto>
-
-                  <Texto
-                    tamanho={12}
-                    className="text-texto-sec"
-                  >
-                    {formatarTempo(noticiaDestaque.publicado_em)}
-                  </Texto>
-                </View>
+                <Texto
+                  tamanho={13}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 4,
+                  }}
+                >
+                  Fique por dentro de tudo que acontece no futebol.
+                </Texto>
               </View>
-            </Pressable>
-          ) : !carregando && !erro ? (
-            <View className="rounded-xl border border-cartao-borda bg-cartao p-5">
-              <Texto
-                tamanho={14}
-                className="text-texto-sec"
-              >
-                Nenhuma notícia encontrada com esses filtros.
-              </Texto>
             </View>
-          ) : null}
-        </View>
 
-        {/* ================================================= */}
-        {/* ÚLTIMAS NOTÍCIAS */}
-        {/* ================================================= */}
+            {/* ================================================= */}
+            {/* PESQUISA */}
+            {/* ================================================= */}
 
-        <View className="mt-7 px-4">
-          <View className="mb-3 flex-row items-center justify-between">
-            <Texto
-              tamanho={20}
-              className="text-texto"
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: superficie,
+                borderWidth: 1,
+                borderColor: borda,
+                borderRadius: 14,
+                paddingHorizontal: 15,
+                minHeight: 50,
+                marginBottom: 20,
+              }}
             >
-              Últimas notícias
-            </Texto>
-          </View>
+              <MagnifyingGlassIcon
+                size={21}
+                color={textoSecundario}
+                weight="regular"
+              />
 
-          {ultimasNoticias.length > 0 ? (
-            ultimasNoticias.map((noticia, index) => (
-              <Pressable
-                key={`${noticia.url || noticia.titulo}-${index}`}
-                className="mb-4 flex-row overflow-hidden rounded-[10px] bg-cartao"
-                onPress={() => abrirNoticia(noticia)}
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir notícia: ${noticia.titulo}`}
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                })}
-              >
-                {noticia.imagem ? (
-                  <Image
-                    source={{ uri: noticia.imagem }}
-                    className="h-[105px] w-[115px]"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="h-[105px] w-[115px] items-center justify-center bg-cartao-borda px-1">
-                    <Texto
-                      tamanho={10}
-                      className="text-texto-ter text-center"
-                    >
-                      Imagem indisponível
-                    </Texto>
-                  </View>
-                )}
+              <TextInput
+                value={busca}
+                onChangeText={setBusca}
+                placeholder="Buscar notícias"
+                placeholderTextColor={textoTerciario}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  marginLeft: 12,
+                  color: texto,
+                  fontFamily: configuracoes.textoNegrito
+                    ? "AnuphanBold"
+                    : "Inter",
+                  fontSize: 14 * fontScale,
+                  paddingVertical: 10,
+                  outlineStyle: "none",
+                }}
+                returnKeyType="search"
+                accessibilityLabel="Buscar notícias"
+              />
+            </View>
 
-                <View className="flex-1 p-3 pr-7">
-                  <Texto
-                    tamanho={12}
-                    className="mb-1 font-bold text-verde"
+            {/* ================================================= */}
+            {/* CATEGORIAS */}
+            {/* ================================================= */}
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: 9,
+                paddingBottom: 4,
+              }}
+              style={{ marginBottom: 26 }}
+            >
+              {categorias.map((categoria) => {
+                const ativa = categoriaAtiva === categoria;
+
+                return (
+                  <Pressable
+                    key={categoria}
+                    onPress={() => setCategoriaAtiva(categoria)}
+                    style={({ pressed }) => ({
+                      paddingHorizontal: 18,
+                      paddingVertical: 11,
+                      borderRadius: 30,
+                      backgroundColor: ativa
+                        ? primaria
+                        : superficie,
+                      borderWidth: ativa ? 0 : 1,
+                      borderColor: borda,
+                      opacity: pressed ? 0.75 : 1,
+                      transform: [
+                        { scale: pressed ? 0.96 : 1 },
+                      ],
+                    })}
                   >
-                    {obterCategoriaExibicao()}
-                  </Texto>
+                    <Texto
+                      tamanho={13}
+                      style={{
+                        color: ativa ? "#FFFFFF" : texto,
+                        fontWeight: ativa ? "700" : "500",
+                      }}
+                    >
+                      {categoria}
+                    </Texto>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
 
+            {/* ================================================= */}
+            {/* DESTAQUE */}
+            {/* ================================================= */}
+
+            <View style={{ marginBottom: 30 }}>
+              <Texto
+                tamanho={21}
+                style={{
+                  ...tituloSecao,
+                  marginBottom: 14,
+                }}
+              >
+                Destaque
+              </Texto>
+
+              {/* CARREGANDO */}
+
+              {carregando ? (
+                <CardMensagem
+                  titulo="Carregando notícias..."
+                  descricao="Estamos buscando as últimas novidades do futebol."
+                />
+              ) : null}
+
+              {/* ERRO */}
+
+              {!carregando && erro ? (
+                <View
+                  style={{
+                    ...cardStyle,
+                    padding: 22,
+                    alignItems: "center",
+                  }}
+                >
                   <Texto
                     tamanho={14}
-                    className="font-medium text-texto"
-                    style={{ flexShrink: 1 }}
+                    style={{
+                      color: texto,
+                      textAlign: "center",
+                    }}
                   >
-                    {noticia.titulo}
+                    Não foi possível carregar as notícias.
                   </Texto>
 
-                  <View className="mt-2 flex-row items-center flex-wrap">
-                    {noticia.url && (
-                      <Image
-                        source={{
-                          uri: `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(noticia.url)}&sz=64`,
-                        }}
-                        className="h-[14px] w-[14px] rounded-full"
-                        resizeMode="contain"
-                      />
-                    )}
+                  <Texto
+                    tamanho={12}
+                    style={{
+                      color: textoSecundario,
+                      textAlign: "center",
+                      marginTop: 6,
+                    }}
+                  >
+                    Verifique sua conexão e tente novamente.
+                  </Texto>
 
+                  <Pressable
+                    onPress={() =>
+                      setAtualizacao((valor) => valor + 1)
+                    }
+                    style={({ pressed }) => ({
+                      backgroundColor: primaria,
+                      paddingHorizontal: 20,
+                      paddingVertical: 11,
+                      borderRadius: 10,
+                      marginTop: 16,
+                      opacity: pressed ? 0.75 : 1,
+                    })}
+                  >
                     <Texto
-                      tamanho={10}
-                      className="ml-1 text-texto-sec"
-                      style={{ flexShrink: 1 }}
+                      tamanho={13}
+                      style={{
+                        color: "#FFFFFF",
+                        fontWeight: "700",
+                      }}
                     >
-                      {noticia.fonte}
+                      Tentar novamente
                     </Texto>
-
-                    <Texto
-                      tamanho={10}
-                      className="mx-1 text-texto-ter"
-                    >
-                      •
-                    </Texto>
-
-                    <Texto
-                      tamanho={10}
-                      className="text-texto-sec"
-                    >
-                      {formatarTempo(noticia.publicado_em)}
-                    </Texto>
-                  </View>
+                  </Pressable>
                 </View>
+              ) : null}
 
-                <View className="absolute bottom-3 right-3">
-                  <CaretRightIcon
-                    size={18 * escalaIcone}
-                    color="#A8B2B9"
-                    weight="bold"
-                  />
+              {/* NOTÍCIA EM DESTAQUE */}
+
+              {!carregando && !erro && noticiaDestaque ? (
+                <CardDestaque noticia={noticiaDestaque} />
+              ) : null}
+
+              {/* NENHUMA NOTÍCIA */}
+
+              {!carregando && !erro && !noticiaDestaque ? (
+                <CardMensagem
+                  titulo="Nenhuma notícia encontrada."
+                  descricao="Tente outra categoria ou altere sua pesquisa."
+                />
+              ) : null}
+            </View>
+
+            {/* ================================================= */}
+            {/* ÚLTIMAS NOTÍCIAS */}
+            {/* ================================================= */}
+
+            <View style={{ marginBottom: 30 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 15,
+                }}
+              >
+                <Texto tamanho={21} style={tituloSecao}>
+                  Últimas notícias
+                </Texto>
+
+                {!carregando && !erro ? (
+                  <Texto
+                    tamanho={12}
+                    style={{ color: textoSecundario }}
+                  >
+                    {ultimasNoticias.length} notícias
+                  </Texto>
+                ) : null}
+              </View>
+
+              {!carregando && !erro && ultimasNoticias.length > 0 ? (
+                <View>
+                  {ultimasNoticias.map((noticia, index) => (
+                    <CardNoticia
+                      key={`${noticia.url || noticia.titulo}-${index}`}
+                      noticia={noticia}
+                      index={index}
+                    />
+                  ))}
                 </View>
-              </Pressable>
-            ))
-          ) : noticiaDestaque ? (
-            <Texto
-              tamanho={14}
-              className="mb-4 text-texto-ter"
-            >
-              Não há outras notícias nesta seleção.
-            </Texto>
-          ) : null}
+              ) : null}
+
+              {!carregando &&
+              !erro &&
+              noticiaDestaque &&
+              ultimasNoticias.length === 0 ? (
+                <Texto
+                  tamanho={13}
+                  style={{
+                    color: textoTerciario,
+                    marginBottom: 15,
+                  }}
+                >
+                  Não há outras notícias nesta seleção.
+                </Texto>
+              ) : null}
+            </View>
+
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
 
       {/* ===================================================== */}
-      {/* BOTÃO FLUTUANTE DE IA */}
+      {/* BOTÃO FLUTUANTE CAMISA10 IA */}
       {/* ===================================================== */}
 
       <Pressable
-        className="absolute bottom-[105px] right-5 h-[60px] w-[60px] items-center justify-center rounded-full bg-verde"
         onPress={() => navigation.navigate("Chatbot")}
         accessibilityRole="button"
-        accessibilityLabel="Abrir assistente de IA"
+        accessibilityLabel="Abrir assistente Camisa10 IA"
         style={({ pressed }) => ({
-          opacity: pressed ? 0.75 : 1,
-          transform: [{ scale: pressed ? 0.9 : 1 }],
+          position: "absolute",
+          bottom: 25,
+          right: 25,
+          width: 62,
+          height: 62,
+          borderRadius: 31,
+          backgroundColor: primaria,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 1,
+          borderColor: borda,
+          opacity: pressed ? 0.8 : 1,
+          transform: [
+            { scale: pressed ? 0.92 : 1 },
+          ],
+          elevation: 6,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 6,
         })}
       >
         <Texto
-          tamanho={24}
-          className="font-bold text-texto"
+          tamanho={23}
+          style={{
+            color: "#FFFFFF",
+            fontWeight: "800",
+          }}
         >
           AI
         </Texto>
       </Pressable>
-
-      {/* ===================================================== */}
-      {/* BARRA DE NAVEGAÇÃO */}
-      {/* ===================================================== */}
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
