@@ -12,18 +12,16 @@ import { Texto } from "../components/texto";
 import {
   ArrowLeftIcon,
   QuestionIcon,
-  UsersThreeIcon,
   TrophyIcon,
   CaretRightIcon,
-  SoccerBallIcon,
   GlobeHemisphereWestIcon,
   FlagIcon,
-  ShieldIcon,
 } from "phosphor-react-native";
 
-import { BottomNav } from "../components/bottomNav";
+import { SideBar } from "../components/sideBar";
 
 import { useAccessibility } from "../context/AccessibilityContext";
+import { useTheme } from "../context/ThemeContext";
 
 const quizzesDiarios = [
   {
@@ -78,6 +76,7 @@ export function Quiz() {
   const navigation = useNavigation();
 
   const { configuracoes } = useAccessibility();
+  const { cores } = useTheme();
 
   const escalaIcone =
     configuracoes.tamanhoTexto === "grande"
@@ -95,186 +94,261 @@ export function Quiz() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fundo"
+      className="flex-1"
       edges={["top", "bottom"]}
+      style={{
+        backgroundColor: cores.background,
+      }}
     >
-      {/* Cabeçalho */}
-      <View className="flex-row items-center px-5 pb-3 pt-4">
-        <Pressable
-          className="h-10 w-10 items-center justify-center"
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            transform: [{ scale: pressed ? 0.9 : 1 }],
-          })}
+      <View className="flex-1 flex-row">
+
+        {/* Sidebar */}
+        <SideBar />
+
+        {/* Conteúdo */}
+        <ScrollView
+          style={{
+            flex: 1,
+            minWidth: 0,
+          }}
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingBottom: 40,
+            alignItems: "center",
+          }}
+          showsVerticalScrollIndicator={false}
         >
-          <ArrowLeftIcon
-            size={25 * escalaIcone}
-            color="#F5F7F8"
-            weight="regular"
-          />
-        </Pressable>
+          <View
+            style={{
+              width: "100%",
+              maxWidth: 1100,
+            }}
+          >
 
-        <Texto
-          tamanho={26}
-          className="ml-3 text-texto"
-        >
-          Quiz
-        </Texto>
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: 15,
-          paddingBottom: 100,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Quizzes diários */}
-        <Texto
-          tamanho={20}
-          className="mb-3 mt-1 text-texto"
-        >
-          Quizzes Diários
-        </Texto>
-
-        <View className="overflow-hidden rounded-xl border border-cartao-borda bg-cartao">
-          {quizzesDiarios.map((quiz, index) => {
-            const Icone = quiz.icone;
-
-            return (
+            {/* Cabeçalho */}
+            <View
+              className="flex-row items-center pb-4 pt-5"
+            >
               <Pressable
-                key={quiz.id}
-                onPress={() => abrirQuiz(quiz.id, quiz.titulo)}
+                onPress={() => navigation.goBack()}
                 accessibilityRole="button"
-                accessibilityLabel={`Abrir ${quiz.titulo}`}
-                className={`flex-row items-center px-4 py-3 ${
-                  index !== quizzesDiarios.length - 1
-                    ? "border-b border-cartao-borda"
-                    : ""
-                }`}
+                accessibilityLabel="Voltar"
                 style={({ pressed }) => ({
-                  opacity: pressed ? 0.75 : 1,
+                  width: 42,
+                  height: 42,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
                   backgroundColor: pressed
-                    ? "#26343E"
+                    ? cores.surfaceSecondary
                     : "transparent",
-                  transform: [{ scale: pressed ? 0.99 : 1 }],
-                  minHeight: 48 * escalaIcone,
+                  opacity: pressed ? 0.7 : 1,
+                  transform: [
+                    {
+                      scale: pressed ? 0.92 : 1,
+                    },
+                  ],
                 })}
               >
-                {quiz.id === "escalacao" ? (
-                  <View
-                    className="items-center justify-center bg-verde"
-                    style={{
-                      width: 28 * escalaIcone,
-                      height: 28 * escalaIcone,
-                    }}
+                <ArrowLeftIcon
+                  size={25 * escalaIcone}
+                  color={cores.text}
+                  weight="regular"
+                />
+              </Pressable>
+
+              <Texto
+                tamanho={26}
+                className="ml-3"
+                style={{
+                  color: cores.text,
+                }}
+              >
+                Quiz
+              </Texto>
+            </View>
+
+            {/* Quizzes diários */}
+            <Texto
+              tamanho={20}
+              className="mb-3 mt-1"
+              style={{
+                color: cores.text,
+              }}
+            >
+              Quizzes Diários
+            </Texto>
+
+            <View
+              style={{
+                overflow: "hidden",
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: cores.border,
+                backgroundColor: cores.surface,
+              }}
+            >
+              {quizzesDiarios.map((quiz, index) => {
+                const Icone = quiz.icone;
+
+                return (
+                  <Pressable
+                    key={quiz.id}
+                    onPress={() =>
+                      abrirQuiz(quiz.id, quiz.titulo)
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir ${quiz.titulo}`}
+                    style={({ pressed }) => ({
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
+                      minHeight: 48 * escalaIcone,
+                      borderBottomWidth:
+                        index !== quizzesDiarios.length - 1
+                          ? 1
+                          : 0,
+                      borderBottomColor: cores.border,
+                      backgroundColor: pressed
+                        ? cores.surfaceSecondary
+                        : "transparent",
+                      opacity: pressed ? 0.8 : 1,
+                      transform: [
+                        {
+                          scale: pressed ? 0.99 : 1,
+                        },
+                      ],
+                    })}
                   >
-                    <SoccerBallIcon
-                      size={20 * escalaIcone}
-                      color="#071018"
-                      weight="fill"
+                    <Icone
+                      size={(quiz.destaque ? 23 : 26) * escalaIcone}
+                      color={quiz.cor}
+                      weight="regular"
                     />
-                  </View>
-                ) : (
-                  <Icone
-                    size={(quiz.destaque ? 23 : 26) * escalaIcone}
-                    color={quiz.cor}
-                    weight="regular"
-                  />
-                )}
 
-                <Texto
-                  tamanho={14}
-                  className={`ml-3 flex-1 ${
-                    quiz.destaque
-                      ? "font-semibold text-verde"
-                      : "font-semibold text-texto"
-                  }`}
-                >
-                  {quiz.titulo}
-                </Texto>
+                    <Texto
+                      tamanho={14}
+                      className="ml-3 flex-1 font-semibold"
+                      style={{
+                        color: quiz.destaque
+                          ? cores.primary
+                          : cores.text,
+                      }}
+                    >
+                      {quiz.titulo}
+                    </Texto>
 
-                <CaretRightIcon
-                  size={21 * escalaIcone}
-                  color={quiz.destaque ? "#00C853" : "#6F7B83"}
-                  weight="regular"
-                />
-              </Pressable>
-            );
-          })}
-        </View>
+                    <CaretRightIcon
+                      size={21 * escalaIcone}
+                      color={
+                        quiz.destaque
+                          ? "#00C853"
+                          : cores.icon
+                      }
+                      weight="regular"
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
 
-        {/* Categorias */}
-        <Texto
-          tamanho={20}
-          className="mb-3 mt-5 text-texto"
-        >
-          Quiz - Categorias
-        </Texto>
+            {/* Categorias */}
+            <Texto
+              tamanho={20}
+              className="mb-3 mt-5"
+              style={{
+                color: cores.text,
+              }}
+            >
+              Quiz - Categorias
+            </Texto>
 
-        <View className="mb-5 overflow-hidden rounded-xl border border-cartao-borda bg-cartao">
-          {categorias.map((categoria, index) => {
-            const Icone = categoria.icone;
+            <View
+              style={{
+                marginBottom: 20,
+                overflow: "hidden",
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: cores.border,
+                backgroundColor: cores.surface,
+              }}
+            >
+              {categorias.map((categoria, index) => {
+                const Icone = categoria.icone;
 
-            return (
-              <Pressable
-                key={categoria.id}
-                onPress={() =>
-                  abrirQuiz(categoria.id, categoria.titulo)
-                }
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir ${categoria.titulo}`}
-                className={`flex-row items-center px-4 py-3 ${
-                  index !== categorias.length - 1
-                    ? "border-b border-cartao-borda"
-                    : ""
-                }`}
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.75 : 1,
-                  backgroundColor: pressed
-                    ? "#26343E"
-                    : "transparent",
-                  transform: [{ scale: pressed ? 0.99 : 1 }],
-                  minHeight: 58 * escalaIcone,
-                })}
-              >
-                <View
-                  className="mr-3 items-center justify-center"
-                  style={{
-                    width: 28 * escalaIcone,
-                    height: 28 * escalaIcone,
-                  }}
-                >
-                  <Icone
-                    size={23 * escalaIcone}
-                    color={categoria.cor}
-                    weight="fill"
-                  />
-                </View>
+                return (
+                  <Pressable
+                    key={categoria.id}
+                    onPress={() =>
+                      abrirQuiz(
+                        categoria.id,
+                        categoria.titulo
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir ${categoria.titulo}`}
+                    style={({ pressed }) => ({
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
+                      minHeight: 58 * escalaIcone,
+                      borderBottomWidth:
+                        index !== categorias.length - 1
+                          ? 1
+                          : 0,
+                      borderBottomColor: cores.border,
+                      backgroundColor: pressed
+                        ? cores.surfaceSecondary
+                        : "transparent",
+                      opacity: pressed ? 0.8 : 1,
+                      transform: [
+                        {
+                          scale: pressed ? 0.99 : 1,
+                        },
+                      ],
+                    })}
+                  >
+                    <View
+                      style={{
+                        marginRight: 12,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 28 * escalaIcone,
+                        height: 28 * escalaIcone,
+                      }}
+                    >
+                      <Icone
+                        size={23 * escalaIcone}
+                        color={categoria.cor}
+                        weight="fill"
+                      />
+                    </View>
 
-                <Texto
-                  tamanho={14}
-                  className="flex-1 font-semibold text-texto"
-                >
-                  {categoria.titulo}
-                </Texto>
+                    <Texto
+                      tamanho={14}
+                      className="flex-1 font-semibold"
+                      style={{
+                        color: cores.text,
+                      }}
+                    >
+                      {categoria.titulo}
+                    </Texto>
 
-                <CaretRightIcon
-                  size={20 * escalaIcone}
-                  color="#6F7B83"
-                  weight="regular"
-                />
-              </Pressable>
-            );
-          })}
-        </View>
-      </ScrollView>
+                    <CaretRightIcon
+                      size={20 * escalaIcone}
+                      color={cores.icon}
+                      weight="regular"
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
 
-      <BottomNav />
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
