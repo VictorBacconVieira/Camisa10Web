@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 
 import {
   View,
-  Text,
   TextInput,
   Pressable,
   ScrollView,
   Modal,
+  useWindowDimensions,
 } from "react-native";
 
 import {
@@ -19,12 +19,19 @@ import {
   XIcon,
   CheckCircleIcon,
   WarningCircleIcon,
+  UserCircleIcon,
+  EnvelopeSimpleIcon,
+  ShieldCheckIcon,
+  FloppyDiskIcon,
+  CameraIcon,
+  PencilSimpleIcon,
+  CaretRightIcon,
 } from "phosphor-react-native";
 
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BottomNav } from "../components/bottomNav";
+import { SideBar } from "../components/sideBar";
 import { FotoPerfil } from "../components/fotoPerfil";
 import { CalendarioPersonalizado } from "../components/calendarioPersonalizado";
 import { Texto } from "../components/texto";
@@ -51,42 +58,68 @@ function Campo({
   placeholder,
   keyboardType = "default",
   autoCapitalize = "sentences",
+  Icon,
 }) {
   const { cores } = useTheme();
-  const { fontScale } = useAccessibility();
+  const { fontScale, configuracoes } = useAccessibility();
+
+  const escalaIcone =
+    configuracoes.tamanhoTexto === "grande"
+      ? 1.15
+      : configuracoes.tamanhoTexto === "muitoGrande"
+        ? 1.3
+        : 1;
 
   return (
-    <View style={{ marginBottom: 18 }}>
+    <View style={{ marginBottom: 20, flex: 1 }}>
       <Texto
         tamanho={13}
         style={{
           color: cores.textSecondary,
-          marginBottom: 8,
-          fontWeight: "600",
+          marginBottom: 9,
+          fontWeight: "700",
         }}
       >
         {label}
       </Texto>
 
-      <TextInput
-        value={valor}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={cores.textTertiary}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
+      <View
         style={{
+          flexDirection: "row",
+          alignItems: "center",
           backgroundColor: cores.surface,
           borderWidth: 1,
           borderColor: cores.border,
-          borderRadius: 12,
-          paddingHorizontal: 15,
-          paddingVertical: 14,
-          color: cores.text,
-          fontSize: 15 * fontScale,
-          minHeight: 50,
+          borderRadius: 13,
+          paddingHorizontal: 14,
+          minHeight: 54,
         }}
-      />
+      >
+        {Icon && (
+          <Icon
+            size={20 * escalaIcone}
+            color={cores.textSecondary}
+          />
+        )}
+
+        <TextInput
+          value={valor}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={cores.textTertiary}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          style={{
+            flex: 1,
+            color: cores.text,
+            fontSize: 14 * fontScale,
+            paddingVertical: 14,
+            marginLeft: Icon ? 10 : 0,
+            minHeight: 52,
+            outlineStyle: "none",
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -120,7 +153,7 @@ function CampoSenha({
         style={{
           color: cores.textSecondary,
           marginBottom: 8,
-          fontWeight: "600",
+          fontWeight: "700",
         }}
       >
         {label}
@@ -131,10 +164,11 @@ function CampoSenha({
           backgroundColor: cores.surface,
           borderWidth: 1,
           borderColor: cores.border,
-          borderRadius: 12,
+          borderRadius: 13,
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 14,
+          minHeight: 52,
         }}
       >
         <TextInput
@@ -148,8 +182,9 @@ function CampoSenha({
             flex: 1,
             color: cores.text,
             paddingVertical: 14,
-            fontSize: 15 * fontScale,
+            fontSize: 14 * fontScale,
             minHeight: 50,
+            outlineStyle: "none",
           }}
         />
 
@@ -160,6 +195,7 @@ function CampoSenha({
           accessibilityLabel={
             mostrar ? "Ocultar senha" : "Mostrar senha"
           }
+          style={{ padding: 4 }}
         >
           {mostrar ? (
             <EyeSlashIcon
@@ -179,13 +215,214 @@ function CampoSenha({
 }
 
 // =====================================================
+// COMPONENTE: TÍTULO DE SEÇÃO
+// =====================================================
+
+function TituloSecao({
+  Icon,
+  titulo,
+  descricao,
+  cores,
+  escalaIcone,
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 22,
+      }}
+    >
+      {Icon && (
+        <View
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 13,
+            backgroundColor: cores.surfaceSecondary,
+            borderWidth: 1,
+            borderColor: cores.border,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 12,
+          }}
+        >
+          <Icon
+            size={22 * escalaIcone}
+            color={cores.primary}
+          />
+        </View>
+      )}
+
+      <View style={{ flex: 1 }}>
+        <Texto
+          tamanho={18}
+          style={{
+            color: cores.text,
+            fontWeight: "800",
+          }}
+        >
+          {titulo}
+        </Texto>
+
+        {descricao && (
+          <Texto
+            tamanho={12}
+            style={{
+              color: cores.textSecondary,
+              marginTop: 4,
+              lineHeight: 17,
+            }}
+          >
+            {descricao}
+          </Texto>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// =====================================================
+// COMPONENTE: BOTÃO
+// =====================================================
+
+function Botao({
+  titulo,
+  onPress,
+  Icon,
+  cor,
+  textoCor,
+  cores,
+  secundario = false,
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: secundario
+          ? cores.surfaceSecondary
+          : cor || cores.primary,
+        borderWidth: secundario ? 1 : 0,
+        borderColor: cores.border,
+        borderRadius: 13,
+        paddingVertical: 15,
+        paddingHorizontal: 18,
+        minHeight: 52,
+        opacity: pressed ? 0.75 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+      })}
+    >
+      {Icon && (
+        <Icon
+          size={20}
+          color={secundario ? cores.icon : textoCor || cores.background}
+          style={{ marginRight: 9 }}
+        />
+      )}
+
+      <Texto
+        tamanho={14}
+        style={{
+          color: secundario
+            ? cores.text
+            : textoCor || cores.background,
+          fontWeight: "800",
+          textAlign: "center",
+        }}
+      >
+        {titulo}
+      </Texto>
+    </Pressable>
+  );
+}
+
+// =====================================================
+// COMPONENTE: CARD
+// IMPORTANTE: FORA DE EDITARPERFIL
+// =====================================================
+
+function Card({ children, style = {} }) {
+  const { cores } = useTheme();
+  const { width } = useWindowDimensions();
+
+  const layoutTablet = width >= 700;
+
+  return (
+    <View
+      style={{
+        backgroundColor: cores.surface,
+        borderWidth: 1,
+        borderColor: cores.border,
+        borderRadius: 20,
+        padding: layoutTablet ? 24 : 18,
+        ...style,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+// =====================================================
+// COMPONENTE: AVISO
+// IMPORTANTE: FORA DE EDITARPERFIL
+// =====================================================
+
+function Aviso({ mensagem, danger = false }) {
+  const { cores } = useTheme();
+  const { fontScale } = useAccessibility();
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        backgroundColor: danger
+          ? "rgba(229,57,53,0.10)"
+          : "rgba(0,200,83,0.08)",
+        borderWidth: 1,
+        borderColor: danger
+          ? "rgba(229,57,53,0.3)"
+          : "rgba(0,200,83,0.25)",
+        borderRadius: 13,
+        padding: 13,
+        marginBottom: 18,
+      }}
+    >
+      <WarningCircleIcon
+        size={20}
+        color={danger ? cores.danger : cores.primary}
+        weight="fill"
+      />
+
+      <Texto
+        tamanho={12}
+        style={{
+          color: cores.textSecondary,
+          flex: 1,
+          marginLeft: 9,
+          lineHeight: 18 * fontScale,
+        }}
+      >
+        {mensagem}
+      </Texto>
+    </View>
+  );
+}
+
+// =====================================================
 // TELA: EDITAR PERFIL
 // =====================================================
 
 export function EditarPerfil() {
+  const navigation = useNavigation();
+  const { width } = useWindowDimensions();
+
   const { cores } = useTheme();
   const { fontScale, configuracoes } = useAccessibility();
-  const navigation = useNavigation();
 
   const escalaIcone =
     configuracoes.tamanhoTexto === "grande"
@@ -194,12 +431,18 @@ export function EditarPerfil() {
         ? 1.3
         : 1;
 
+  const layoutTablet = width >= 700;
+
   const {
     usuario: usuarioAutenticado,
     atualizarDadosUsuario,
     atualizarFotoUsuario,
     sair,
   } = useAuth();
+
+  // =====================================================
+  // DADOS DO USUÁRIO
+  // =====================================================
 
   const [usuario, setUsuario] = useState({
     nome: usuarioAutenticado?.nome || "",
@@ -209,6 +452,12 @@ export function EditarPerfil() {
       ? new Date(`${usuarioAutenticado.data_nascimento}T12:00:00`)
       : null,
   });
+
+  const [fotoPerfil, setFotoPerfil] = useState(
+    usuarioAutenticado?.avatar_url || null
+  );
+
+  const [fotoCarregando, setFotoCarregando] = useState(false);
 
   useEffect(() => {
     if (!usuarioAutenticado) return;
@@ -225,12 +474,6 @@ export function EditarPerfil() {
 
     setFotoPerfil(usuarioAutenticado.avatar_url || null);
   }, [usuarioAutenticado]);
-
-  const [fotoPerfil, setFotoPerfil] = useState(
-    usuarioAutenticado?.avatar_url || null
-  );
-
-  const [fotoCarregando, setFotoCarregando] = useState(false);
 
   // =====================================================
   // MODAIS
@@ -289,9 +532,7 @@ export function EditarPerfil() {
   }
 
   function confirmarData(data) {
-    if (data > new Date()) {
-      return;
-    }
+    if (data > new Date()) return;
 
     atualizarCampo("dataNascimento", data);
     setMostrarCalendario(false);
@@ -368,8 +609,7 @@ export function EditarPerfil() {
       setMensagemSucesso("Seus dados foram atualizados!");
       setModalSucesso(true);
     } catch (error) {
-      console.log("ERRO COMPLETO AO SALVAR PERFIL:", error);
-      console.log("STACK:", error.stack);
+      console.log("ERRO AO SALVAR PERFIL:", error);
 
       setMensagemSucesso(
         error.message || "Não foi possível atualizar seus dados."
@@ -394,6 +634,9 @@ export function EditarPerfil() {
     setSenhaAntiga("");
     setNovaSenha("");
     setConfirmarSenha("");
+    setMostrarSenhaAntiga(false);
+    setMostrarNovaSenha(false);
+    setMostrarConfirmarSenha(false);
   }
 
   async function alterarSenha() {
@@ -486,325 +729,574 @@ export function EditarPerfil() {
 
   return (
     <SafeAreaView
+      className="flex-1"
       edges={["top", "bottom"]}
       style={{
-        flex: 1,
         backgroundColor: cores.background,
       }}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 105,
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
         }}
       >
-        {/* CABEÇALHO */}
+        {/* SIDEBAR */}
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 20,
-            paddingTop: 12,
-            paddingBottom: 22,
+        <SideBar />
+
+        {/* CONTEÚDO */}
+
+        <ScrollView
+          className="flex-1"
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: layoutTablet ? 32 : 18,
+            paddingTop: 10,
+            paddingBottom: 55,
+            maxWidth: 1100,
+            width: "100%",
+            alignSelf: "center",
           }}
+          showsVerticalScrollIndicator={false}
         >
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={{
-              minWidth: 42,
-              minHeight: 42,
-              borderRadius: 12,
-              backgroundColor: cores.surfaceSecondary,
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 5,
-            }}
-          >
-            <ArrowLeftIcon
-              size={22 * escalaIcone}
-              color={cores.icon}
-            />
-          </Pressable>
-
-          <Texto
-            tamanho={21}
-            style={{
-              color: cores.text,
-              fontWeight: "bold",
-              marginLeft: 15,
-              flexShrink: 1,
-            }}
-          >
-            Editar Perfil
-          </Texto>
-        </View>
-
-        {/* FOTO DE PERFIL */}
-
-        <View style={{ marginBottom: 30 }}>
-          <FotoPerfil
-            foto={fotoPerfil}
-            nome={usuario.nome}
-            onFotoSelecionada={selecionarFoto}
-          />
-        </View>
-
-        {/* INFORMAÇÕES PESSOAIS */}
-
-        <View style={{ paddingHorizontal: 20 }}>
-          <Texto
-            tamanho={17}
-            style={{
-              color: cores.text,
-              fontWeight: "bold",
-              marginBottom: 18,
-            }}
-          >
-            Informações pessoais
-          </Texto>
-
-          <Campo
-            label="Nome completo"
-            valor={usuario.nome}
-            onChangeText={(valor) => atualizarCampo("nome", valor)}
-            placeholder="Digite seu nome completo"
-          />
-
-          <Campo
-            label="Nome de usuário"
-            valor={usuario.nomeUsuario}
-            onChangeText={(valor) => atualizarCampo("nomeUsuario", valor)}
-            placeholder="Digite seu nome de usuário"
-            autoCapitalize="none"
-          />
-
-          <Campo
-            label="E-mail"
-            valor={usuario.email}
-            onChangeText={(valor) => atualizarCampo("email", valor)}
-            placeholder="Digite seu e-mail"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          {/* DATA DE NASCIMENTO */}
-
-          <View style={{ marginBottom: 25 }}>
-            <Texto
-              tamanho={13}
-              style={{
-                color: cores.textSecondary,
-                marginBottom: 8,
-                fontWeight: "600",
-              }}
-            >
-              Data de nascimento
-            </Texto>
-
-            <Pressable
-              onPress={() => setMostrarCalendario(true)}
-              style={{
-                backgroundColor: cores.surface,
-                borderWidth: 1,
-                borderColor: cores.border,
-                borderRadius: 12,
-                paddingHorizontal: 15,
-                paddingVertical: 15,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                minHeight: 52,
-              }}
-            >
-              <Texto
-                tamanho={15}
-                style={{
-                  color: cores.text,
-                  flex: 1,
-                  marginRight: 10,
-                }}
-              >
-                {formatarData(usuario.dataNascimento)}
-              </Texto>
-
-              <CalendarBlankIcon
-                size={21 * escalaIcone}
-                color={cores.primary}
-              />
-            </Pressable>
-          </View>
-
-          {/* ALTERAR SENHA */}
+          {/* CABEÇALHO */}
 
           <View
             style={{
-              borderTopWidth: 1,
-              borderTopColor: cores.border,
-              paddingTop: 23,
-              marginBottom: 25,
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 30,
             }}
           >
-            <Texto
-              tamanho={17}
-              style={{
-                color: cores.text,
-                fontWeight: "bold",
-                marginBottom: 8,
-              }}
-            >
-              Segurança
-            </Texto>
-
-            <Texto
-              tamanho={13}
-              style={{
-                color: cores.textSecondary,
-                lineHeight: 19 * fontScale,
-                marginBottom: 15,
-              }}
-            >
-              Mantenha sua conta protegida atualizando sua senha
-              periodicamente.
-            </Texto>
-
             <Pressable
-              onPress={abrirModalSenha}
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Voltar"
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                borderRadius: 13,
+                backgroundColor: cores.surface,
+                borderWidth: 1,
+                borderColor: cores.border,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.65 : 1,
+                transform: [{ scale: pressed ? 0.94 : 1 }],
+              })}
+            >
+              <ArrowLeftIcon
+                size={23 * escalaIcone}
+                color={cores.icon}
+              />
+            </Pressable>
+
+            <View style={{ marginLeft: 15, flex: 1 }}>
+              <Texto
+                tamanho={25}
+                style={{
+                  color: cores.text,
+                  fontWeight: "800",
+                }}
+              >
+                Editar Perfil
+              </Texto>
+
+              <Texto
+                tamanho={12}
+                style={{
+                  color: cores.textSecondary,
+                  marginTop: 3,
+                }}
+              >
+                Gerencie suas informações e segurança
+              </Texto>
+            </View>
+          </View>
+
+          {/* CARD DE IDENTIDADE */}
+
+          <Card
+            style={{
+              marginBottom: 25,
+              padding: layoutTablet ? 26 : 18,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: layoutTablet ? "row" : "column",
+                alignItems: layoutTablet ? "center" : "flex-start",
+              }}
+            >
+              {/* FOTO */}
+
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: layoutTablet ? 25 : 0,
+                  marginBottom: layoutTablet ? 0 : 20,
+                }}
+              >
+                <FotoPerfil
+                  foto={fotoPerfil}
+                  nome={usuario.nome}
+                  tamanho={layoutTablet ? 110 : 95}
+                  onFotoSelecionada={selecionarFoto}
+                />
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: cores.surfaceSecondary,
+                    borderWidth: 1,
+                    borderColor: cores.border,
+                    borderRadius: 20,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    marginTop: 10,
+                  }}
+                >
+                  <CameraIcon
+                    size={14}
+                    color={cores.primary}
+                  />
+
+                  <Texto
+                    tamanho={10}
+                    style={{
+                      color: cores.textSecondary,
+                      marginLeft: 5,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Foto de perfil
+                  </Texto>
+                </View>
+              </View>
+
+              {/* INFORMAÇÕES */}
+
+              <View
+                style={{
+                  flex: 1,
+                  width: layoutTablet ? undefined : "100%",
+                }}
+              >
+                <Texto
+                  tamanho={layoutTablet ? 22 : 19}
+                  style={{
+                    color: cores.text,
+                    fontWeight: "800",
+                  }}
+                >
+                  {usuario.nome || "Seu perfil"}
+                </Texto>
+
+                <Texto
+                  tamanho={13}
+                  style={{
+                    color: cores.textSecondary,
+                    marginTop: 5,
+                  }}
+                >
+                  {usuario.nomeUsuario
+                    ? `@${usuario.nomeUsuario}`
+                    : "Configure seu nome de usuário"}
+                </Texto>
+
+                <View
+                  style={{
+                    backgroundColor: cores.surfaceSecondary,
+                    borderRadius: 13,
+                    padding: 13,
+                    marginTop: 18,
+                    borderWidth: 1,
+                    borderColor: cores.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <ShieldCheckIcon
+                      size={20}
+                      color={cores.primary}
+                    />
+
+                    <Texto
+                      tamanho={12}
+                      style={{
+                        color: cores.text,
+                        fontWeight: "700",
+                        marginLeft: 8,
+                      }}
+                    >
+                      Sua conta, suas informações
+                    </Texto>
+                  </View>
+
+                  <Texto
+                    tamanho={11}
+                    style={{
+                      color: cores.textSecondary,
+                      marginTop: 6,
+                      lineHeight: 17,
+                    }}
+                  >
+                    Mantenha seus dados atualizados para
+                    aproveitar melhor sua experiência no Camisa10.
+                  </Texto>
+                </View>
+
+                {fotoCarregando && (
+                  <Texto
+                    tamanho={11}
+                    style={{
+                      color: cores.primary,
+                      marginTop: 12,
+                    }}
+                  >
+                    Atualizando sua foto...
+                  </Texto>
+                )}
+              </View>
+            </View>
+          </Card>
+
+          {/* INFORMAÇÕES PESSOAIS */}
+
+          <Card style={{ marginBottom: 25 }}>
+            <TituloSecao
+              Icon={UserCircleIcon}
+              titulo="Informações pessoais"
+              descricao="Atualize seus dados de identificação"
+              cores={cores}
+              escalaIcone={escalaIcone}
+            />
+
+            <Campo
+              label="Nome completo"
+              valor={usuario.nome}
+              onChangeText={(valor) => atualizarCampo("nome", valor)}
+              placeholder="Digite seu nome completo"
+              Icon={UserCircleIcon}
+            />
+
+            <Campo
+              label="Nome de usuário"
+              valor={usuario.nomeUsuario}
+              onChangeText={(valor) =>
+                atualizarCampo("nomeUsuario", valor)
+              }
+              placeholder="Escolha seu nome de usuário"
+              autoCapitalize="none"
+              Icon={PencilSimpleIcon}
+            />
+
+            <Campo
+              label="E-mail"
+              valor={usuario.email}
+              onChangeText={(valor) => atualizarCampo("email", valor)}
+              placeholder="Digite seu e-mail"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              Icon={EnvelopeSimpleIcon}
+            />
+
+            {/* DATA DE NASCIMENTO */}
+
+            <View style={{ marginBottom: 8 }}>
+              <Texto
+                tamanho={13}
+                style={{
+                  color: cores.textSecondary,
+                  marginBottom: 9,
+                  fontWeight: "700",
+                }}
+              >
+                Data de nascimento
+              </Texto>
+
+              <Pressable
+                onPress={() => setMostrarCalendario(true)}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: cores.surfaceSecondary,
+                  borderWidth: 1,
+                  borderColor: cores.border,
+                  borderRadius: 13,
+                  paddingHorizontal: 15,
+                  minHeight: 54,
+                  opacity: pressed ? 0.75 : 1,
+                })}
+              >
+                <CalendarBlankIcon
+                  size={21 * escalaIcone}
+                  color={cores.primary}
+                />
+
+                <Texto
+                  tamanho={14}
+                  style={{
+                    color: usuario.dataNascimento
+                      ? cores.text
+                      : cores.textTertiary,
+                    flex: 1,
+                    marginLeft: 12,
+                  }}
+                >
+                  {formatarData(usuario.dataNascimento)}
+                </Texto>
+
+                <CaretRightIcon
+                  size={19}
+                  color={cores.textSecondary}
+                />
+              </Pressable>
+
+              <Texto
+                tamanho={11}
+                style={{
+                  color: cores.textTertiary,
+                  marginTop: 7,
+                }}
+              >
+                Sua data de nascimento não pode ser futura.
+              </Texto>
+            </View>
+          </Card>
+
+          {/* SALVAR ALTERAÇÕES */}
+
+          <View style={{ marginBottom: 30 }}>
+            <Botao
+              titulo="Salvar alterações"
+              Icon={FloppyDiskIcon}
+              onPress={salvarAlteracoes}
+              cores={cores}
+            />
+          </View>
+
+          {/* SEGURANÇA */}
+
+          <Card style={{ marginBottom: 25 }}>
+            <TituloSecao
+              Icon={ShieldCheckIcon}
+              titulo="Segurança"
+              descricao="Proteja sua conta e suas informações"
+              cores={cores}
+              escalaIcone={escalaIcone}
+            />
+
+            <View
               style={{
                 backgroundColor: cores.surfaceSecondary,
                 borderWidth: 1,
                 borderColor: cores.border,
-                borderRadius: 12,
+                borderRadius: 15,
                 padding: 16,
                 flexDirection: "row",
                 alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <LockKeyIcon
-                size={22 * escalaIcone}
-                color={cores.primary}
-              />
-
-              <Texto
-                tamanho={15}
-                style={{
-                  color: cores.text,
-                  fontWeight: "600",
-                  marginLeft: 12,
-                  flex: 1,
-                }}
-              >
-                Alterar senha
-              </Texto>
-
-              <Texto
-                tamanho={20}
-                style={{ color: cores.primary }}
-              >
-                ›
-              </Texto>
-            </Pressable>
-          </View>
-
-          {/* SALVAR ALTERAÇÕES */}
-
-          <Pressable
-            onPress={salvarAlteracoes}
-            style={{
-              backgroundColor: cores.primary,
-              paddingVertical: 16,
-              paddingHorizontal: 12,
-              borderRadius: 13,
-              alignItems: "center",
-              marginBottom: 35,
-              minHeight: 52,
-              justifyContent: "center",
-            }}
-          >
-            <Texto
-              tamanho={16}
-              style={{
-                color: cores.background,
-                fontWeight: "bold",
-                textAlign: "center",
-              }}
-            >
-              Salvar alterações
-            </Texto>
-          </Pressable>
-
-          {/* EXCLUSÃO DE CONTA */}
-
-          <View
-            style={{
-              borderTopWidth: 1,
-              borderTopColor: cores.border,
-              paddingTop: 24,
-              marginBottom: 20,
-            }}
-          >
-            <Texto
-              tamanho={17}
-              style={{
-                color: cores.danger,
-                fontWeight: "bold",
-                marginBottom: 9,
-              }}
-            >
-              Zona de perigo
-            </Texto>
-
-            <Texto
-              tamanho={13}
-              style={{
-                color: cores.textSecondary,
-                lineHeight: 20 * fontScale,
                 marginBottom: 16,
               }}
             >
-              A exclusão da conta poderá remover permanentemente
-              seus dados, conquistas e progresso no Camisa10.
-            </Texto>
+              <View
+                style={{
+                  width: 45,
+                  height: 45,
+                  borderRadius: 13,
+                  backgroundColor: cores.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: cores.border,
+                }}
+              >
+                <LockKeyIcon
+                  size={23}
+                  color={cores.primary}
+                />
+              </View>
+
+              <View style={{ flex: 1, marginLeft: 13 }}>
+                <Texto
+                  tamanho={14}
+                  style={{
+                    color: cores.text,
+                    fontWeight: "700",
+                  }}
+                >
+                  Senha da conta
+                </Texto>
+
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: cores.textSecondary,
+                    marginTop: 4,
+                  }}
+                >
+                  Altere sua senha periodicamente
+                </Texto>
+              </View>
+            </View>
+
+            <Botao
+              titulo="Alterar minha senha"
+              Icon={LockKeyIcon}
+              onPress={abrirModalSenha}
+              cores={cores}
+              secundario
+            />
+          </Card>
+
+          {/* ZONA DE PERIGO */}
+
+          <View
+            style={{
+              backgroundColor: cores.surface,
+              borderWidth: 1,
+              borderColor: "rgba(229,57,53,0.45)",
+              borderRadius: 20,
+              padding: layoutTablet ? 24 : 18,
+              marginBottom: 25,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 13,
+                  backgroundColor: "rgba(229,57,53,0.12)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 12,
+                }}
+              >
+                <WarningCircleIcon
+                  size={24}
+                  color={cores.danger}
+                  weight="fill"
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Texto
+                  tamanho={18}
+                  style={{
+                    color: cores.danger,
+                    fontWeight: "800",
+                  }}
+                >
+                  Zona de perigo
+                </Texto>
+
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: cores.textSecondary,
+                    marginTop: 3,
+                  }}
+                >
+                  Ações permanentes sobre sua conta
+                </Texto>
+              </View>
+            </View>
+
+            <View
+              style={{
+                backgroundColor: "rgba(229,57,53,0.07)",
+                borderRadius: 13,
+                padding: 14,
+                marginBottom: 18,
+              }}
+            >
+              <Texto
+                tamanho={12}
+                style={{
+                  color: cores.textSecondary,
+                  lineHeight: 19 * fontScale,
+                }}
+              >
+                A exclusão da conta poderá remover permanentemente
+                seus dados, conquistas, XP e progresso no Camisa10.
+                Essa ação não poderá ser desfeita.
+              </Texto>
+            </View>
 
             <Pressable
               onPress={abrirModalExcluir}
-              style={{
-                borderWidth: 1,
-                borderColor: cores.danger,
-                borderRadius: 12,
-                padding: 15,
+              style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                flexWrap: "wrap",
-                minHeight: 50,
-              }}
+                backgroundColor: "rgba(229,57,53,0.10)",
+                borderWidth: 1,
+                borderColor: cores.danger,
+                borderRadius: 13,
+                paddingVertical: 15,
+                minHeight: 52,
+                opacity: pressed ? 0.7 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              })}
             >
               <TrashIcon
-                size={20 * escalaIcone}
+                size={20}
                 color={cores.danger}
               />
 
               <Texto
-                tamanho={15}
+                tamanho={14}
                 style={{
                   color: cores.danger,
-                  fontWeight: "bold",
+                  fontWeight: "800",
                   marginLeft: 9,
-                  textAlign: "center",
                 }}
               >
                 Excluir minha conta
               </Texto>
             </Pressable>
           </View>
-        </View>
-      </ScrollView>
 
-      {/* =====================================================
-          MODAL DE ALTERAÇÃO DE SENHA
-      ===================================================== */}
+          {/* RODAPÉ */}
+
+          <View
+            style={{
+              alignItems: "center",
+              marginTop: 5,
+              paddingBottom: 15,
+            }}
+          >
+            <Texto
+              tamanho={11}
+              style={{
+                color: cores.textTertiary,
+                textAlign: "center",
+              }}
+            >
+              Camisa10 • Futebol em um só lugar
+            </Texto>
+          </View>
+        </ScrollView>
+      </View>
+
+  {/* MODAIS CONTINUAM ABAIXO */}
+  // =====================================================
+  // MODAL DE ALTERAÇÃO DE SENHA
+  // =====================================================
 
       <Modal
         visible={modalSenha}
@@ -831,11 +1323,14 @@ export function EditarPerfil() {
           >
             <View
               style={{
-                backgroundColor: cores.surfaceSecondary,
-                borderRadius: 20,
-                padding: 22,
+                backgroundColor: cores.surface,
+                borderRadius: 22,
+                padding: 23,
                 borderWidth: 1,
                 borderColor: cores.border,
+                width: "100%",
+                maxWidth: 500,
+                alignSelf: "center",
               }}
             >
               <View
@@ -846,37 +1341,71 @@ export function EditarPerfil() {
                   marginBottom: 8,
                 }}
               >
-                <Texto
-                  tamanho={19}
+                <View
                   style={{
-                    color: cores.text,
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    alignItems: "center",
                     flex: 1,
                   }}
                 >
-                  Alterar senha
-                </Texto>
+                  <View
+                    style={{
+                      width: 43,
+                      height: 43,
+                      borderRadius: 13,
+                      backgroundColor: cores.surfaceSecondary,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                    }}
+                  >
+                    <LockKeyIcon
+                      size={23}
+                      color={cores.primary}
+                    />
+                  </View>
+
+                  <Texto
+                    tamanho={19}
+                    style={{
+                      color: cores.text,
+                      fontWeight: "800",
+                    }}
+                  >
+                    Alterar senha
+                  </Texto>
+                </View>
 
                 <Pressable
                   onPress={fecharModalSenha}
                   hitSlop={10}
+                  style={{
+                    width: 35,
+                    height: 35,
+                    borderRadius: 10,
+                    backgroundColor: cores.surfaceSecondary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   <XIcon
-                    size={23 * escalaIcone}
+                    size={21}
                     color={cores.icon}
                   />
                 </Pressable>
               </View>
 
               <Texto
-                tamanho={13}
+                tamanho={12}
                 style={{
                   color: cores.textSecondary,
                   lineHeight: 19 * fontScale,
                   marginBottom: 22,
+                  marginTop: 8,
                 }}
               >
-                Informe sua senha atual e escolha uma nova senha.
+                Informe sua senha atual e escolha uma nova
+                senha para sua conta.
               </Texto>
 
               <CampoSenha
@@ -921,65 +1450,16 @@ export function EditarPerfil() {
                 placeholder="Repita sua nova senha"
               />
 
-              {/* ERRO DE VALIDAÇÃO */}
-
               {!!erroSenha && (
-                <View
-                  style={{
-                    backgroundColor: "rgba(229,57,53,0.12)",
-                    borderWidth: 1,
-                    borderColor: "rgba(229,57,53,0.4)",
-                    borderRadius: 11,
-                    padding: 12,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 14,
-                  }}
-                >
-                  <WarningCircleIcon
-                    size={20 * escalaIcone}
-                    color={cores.danger}
-                    weight="fill"
-                  />
-
-                  <Texto
-                    tamanho={12}
-                    style={{
-                      color: cores.text,
-                      flex: 1,
-                      marginLeft: 9,
-                      lineHeight: 18 * fontScale,
-                    }}
-                  >
-                    {erroSenha}
-                  </Texto>
-                </View>
+                <Aviso mensagem={erroSenha} danger />
               )}
 
-              <Pressable
+              <Botao
+                titulo="Confirmar alteração"
+                Icon={CheckCircleIcon}
                 onPress={alterarSenha}
-                style={{
-                  backgroundColor: cores.primary,
-                  borderRadius: 12,
-                  paddingVertical: 15,
-                  paddingHorizontal: 10,
-                  alignItems: "center",
-                  marginTop: 5,
-                  minHeight: 50,
-                  justifyContent: "center",
-                }}
-              >
-                <Texto
-                  tamanho={15}
-                  style={{
-                    color: cores.background,
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  Confirmar alteração
-                </Texto>
-              </Pressable>
+                cores={cores}
+              />
             </View>
           </ScrollView>
         </View>
@@ -1014,58 +1494,65 @@ export function EditarPerfil() {
           >
             <View
               style={{
-                backgroundColor: cores.surfaceSecondary,
-                borderRadius: 20,
+                backgroundColor: cores.surface,
+                borderRadius: 22,
                 padding: 23,
                 borderWidth: 1,
-                borderColor: cores.danger,
+                borderColor: "rgba(229,57,53,0.45)",
+                width: "100%",
+                maxWidth: 500,
+                alignSelf: "center",
               }}
             >
               <View
                 style={{
                   alignItems: "center",
-                  marginBottom: 15,
+                  marginBottom: 20,
                 }}
               >
-                <TrashIcon
-                  size={38 * escalaIcone}
-                  color={cores.danger}
-                />
+                <View
+                  style={{
+                    width: 70,
+                    height: 70,
+                    borderRadius: 22,
+                    backgroundColor: "rgba(229,57,53,0.12)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <TrashIcon
+                    size={35}
+                    color={cores.danger}
+                  />
+                </View>
 
                 <Texto
                   tamanho={20}
                   style={{
                     color: cores.danger,
-                    fontWeight: "bold",
-                    marginTop: 12,
+                    fontWeight: "800",
+                    marginTop: 15,
                     textAlign: "center",
                   }}
                 >
-                  Excluir conta?
+                  Excluir sua conta?
                 </Texto>
               </View>
 
-              <Texto
-                tamanho={14}
-                style={{
-                  color: cores.text,
-                  textAlign: "center",
-                  lineHeight: 21 * fontScale,
-                  marginBottom: 17,
-                }}
-              >
-                Essa ação é permanente e poderá apagar seus dados,
-                conquistas, XP e progresso no Camisa10.
-              </Texto>
+              <Aviso
+                mensagem="Essa ação é permanente. Seus dados, conquistas, XP e progresso poderão ser removidos definitivamente."
+                danger
+              />
 
               <Texto
                 tamanho={13}
                 style={{
                   color: cores.textSecondary,
                   marginBottom: 9,
+                  fontWeight: "600",
                 }}
               >
-                Para confirmar, digite EXCLUIR abaixo:
+                Digite EXCLUIR para confirmar:
               </Texto>
 
               <TextInput
@@ -1078,15 +1565,16 @@ export function EditarPerfil() {
                 placeholderTextColor={cores.textTertiary}
                 autoCapitalize="characters"
                 style={{
-                  backgroundColor: cores.surface,
+                  backgroundColor: cores.surfaceSecondary,
                   borderWidth: 1,
                   borderColor: cores.danger,
-                  borderRadius: 11,
+                  borderRadius: 12,
                   padding: 14,
                   color: cores.text,
-                  marginBottom: 12,
+                  marginBottom: 18,
                   fontSize: 14 * fontScale,
                   minHeight: 50,
+                  outlineStyle: "none",
                 }}
               />
 
@@ -1105,61 +1593,54 @@ export function EditarPerfil() {
               />
 
               {!!erroExclusao && (
-                <Texto
-                  tamanho={12}
-                  style={{
-                    color: cores.danger,
-                    marginBottom: 13,
-                    lineHeight: 18 * fontScale,
-                  }}
-                >
-                  {erroExclusao}
-                </Texto>
+                <Aviso mensagem={erroExclusao} danger />
               )}
 
               <Pressable
                 onPress={excluirConta}
-                style={{
+                style={({ pressed }) => ({
                   backgroundColor: cores.danger,
                   paddingVertical: 14,
                   paddingHorizontal: 10,
-                  borderRadius: 11,
+                  borderRadius: 12,
                   alignItems: "center",
                   marginBottom: 10,
                   minHeight: 50,
                   justifyContent: "center",
-                }}
+                  opacity: pressed ? 0.75 : 1,
+                })}
               >
                 <Texto
-                  tamanho={15}
+                  tamanho={14}
                   style={{
                     color: "#FFFFFF",
-                    fontWeight: "bold",
+                    fontWeight: "800",
                     textAlign: "center",
                   }}
                 >
-                  Confirmar exclusão
+                  Confirmar exclusão permanente
                 </Texto>
               </Pressable>
 
               <Pressable
                 onPress={fecharModalExcluir}
-                style={{
-                  paddingVertical: 12,
+                style={({ pressed }) => ({
+                  paddingVertical: 13,
                   alignItems: "center",
                   minHeight: 45,
                   justifyContent: "center",
-                }}
+                  opacity: pressed ? 0.6 : 1,
+                })}
               >
                 <Texto
-                  tamanho={14}
+                  tamanho={13}
                   style={{
                     color: cores.textSecondary,
-                    fontWeight: "600",
+                    fontWeight: "700",
                     textAlign: "center",
                   }}
                 >
-                  Cancelar
+                  Cancelar e voltar
                 </Texto>
               </Pressable>
             </View>
@@ -1188,62 +1669,55 @@ export function EditarPerfil() {
         >
           <View
             style={{
-              backgroundColor: cores.surfaceSecondary,
-              borderRadius: 20,
+              backgroundColor: cores.surface,
+              borderRadius: 22,
               padding: 28,
               alignItems: "center",
               width: "100%",
+              maxWidth: 420,
               borderWidth: 1,
               borderColor: cores.border,
             }}
           >
-            <CheckCircleIcon
-              size={52 * escalaIcone}
-              color={cores.primary}
-              weight="fill"
-            />
+            <View
+              style={{
+                width: 75,
+                height: 75,
+                borderRadius: 23,
+                backgroundColor: cores.surfaceSecondary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <CheckCircleIcon
+                size={48 * escalaIcone}
+                color={cores.primary}
+                weight="fill"
+              />
+            </View>
 
             <Texto
-              tamanho={18}
+              tamanho={17}
               style={{
                 color: cores.text,
-                fontWeight: "bold",
-                marginTop: 15,
+                fontWeight: "800",
+                marginTop: 17,
                 textAlign: "center",
               }}
             >
               {mensagemSucesso}
             </Texto>
 
-            <Pressable
+            <Botao
+              titulo="Continuar"
               onPress={() => setModalSucesso(false)}
-              style={{
-                backgroundColor: cores.primary,
-                borderRadius: 11,
-                paddingVertical: 12,
-                paddingHorizontal: 35,
-                marginTop: 22,
-                minHeight: 45,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Texto
-                tamanho={14}
-                style={{
-                  color: cores.background,
-                  fontWeight: "bold",
-                  textAlign: "center",
-                }}
-              >
-                Continuar
-              </Texto>
-            </Pressable>
+              cores={cores}
+            />
           </View>
         </View>
       </Modal>
 
-      {/* CALENDÁRIO PERSONALIZADO */}
+      {/* CALENDÁRIO */}
 
       <CalendarioPersonalizado
         visible={mostrarCalendario}
@@ -1251,10 +1725,6 @@ export function EditarPerfil() {
         onCancel={() => setMostrarCalendario(false)}
         onConfirm={confirmarData}
       />
-
-      {/* NAVEGAÇÃO INFERIOR */}
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
