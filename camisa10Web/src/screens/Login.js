@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -51,6 +50,115 @@ GoogleSignin.configure({
 });
 
 // ==================================================
+// PAINEL DA MARCA
+// ==================================================
+
+function PainelMarca({ desktop, cores }) {
+  return (
+    <View
+      style={{
+        flex: desktop ? 1 : undefined,
+        alignItems: desktop ? "flex-start" : "center",
+        justifyContent: "center",
+        paddingVertical: desktop ? 40 : 12,
+        ...(desktop ? { paddingRight: 55 } : {}),
+      }}
+    >
+      {/* LOGO */}
+
+      <Image
+        source={require("../../assets/Logo.png")}
+        resizeMode="contain"
+        style={{
+          width: desktop ? 260 : 145,
+          height: desktop ? 260 : 145,
+        }}
+      />
+
+      {/* NOME */}
+
+      <Text
+        style={{
+          marginTop: desktop ? 18 : 4,
+          fontSize: desktop ? 64 : 36,
+          lineHeight: desktop ? 76 : 44,
+          fontWeight: "500",
+          textAlign: desktop ? "left" : "center",
+          fontFamily: "Anuphan",
+          color: cores.text,
+        }}
+      >
+        Camisa
+        <Text style={{ color: "#39FF14" }}>10</Text>
+      </Text>
+
+      {/* SLOGAN */}
+
+      <Text
+        style={{
+          marginTop: 12,
+          fontSize: desktop ? 22 : 16,
+          lineHeight: desktop ? 34 : 24,
+          textAlign: desktop ? "left" : "center",
+          fontFamily: "Anuphan",
+          color: cores.textSecondary,
+          maxWidth: desktop ? 460 : 350,
+        }}
+      >
+        O futebol vai muito além dos{" "}
+        <Text style={{ color: "#39FF14", fontWeight: "700" }}>
+          90 minutos.
+        </Text>
+      </Text>
+
+      {/* DESCRIÇÃO */}
+
+      {desktop && (
+        <View
+          style={{
+            marginTop: 32,
+            paddingLeft: 18,
+            borderLeftWidth: 3,
+            borderLeftColor: "#00C853",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 15,
+              lineHeight: 25,
+              fontFamily: "Inter",
+              color: cores.textSecondary,
+              maxWidth: 390,
+            }}
+          >
+            Notícias, partidas, desafios, estatísticas e
+            tudo o que conecta você ao esporte mais
+            apaixonante do mundo.
+          </Text>
+        </View>
+      )}
+
+      {/* IDENTIDADE */}
+
+      <View style={{ marginTop: desktop ? 40 : 22 }}>
+        <Text
+          style={{
+            fontSize: 12,
+            letterSpacing: 2.5,
+            fontWeight: "800",
+            textAlign: desktop ? "left" : "center",
+            fontFamily: "Inter",
+            color: "#39FF14",
+          }}
+        >
+          CAMISA10 • JUNTOS EM CAMPO
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ==================================================
 // POP-UP PERSONALIZADO
 // ==================================================
 
@@ -68,12 +176,7 @@ function ModalAlerta({
   const deslocamento = useRef(new Animated.Value(20)).current;
 
   const fechando = useRef(false);
-
   const nativeDriver = Platform.OS !== "web";
-
-  // ==================================================
-  // ANIMAÇÃO DE ENTRADA
-  // ==================================================
 
   useEffect(() => {
     if (!visible) return;
@@ -108,10 +211,6 @@ function ModalAlerta({
     ]).start();
   }, [visible]);
 
-  // ==================================================
-  // ANIMAÇÃO DE SAÍDA
-  // ==================================================
-
   function fechar() {
     if (fechando.current) return;
 
@@ -138,15 +237,9 @@ function ModalAlerta({
         useNativeDriver: nativeDriver,
       }),
     ]).start(({ finished }) => {
-      if (finished) {
-        onClose();
-      }
+      if (finished) onClose();
     });
   }
-
-  // ==================================================
-  // CONFIGURAÇÃO DOS TIPOS
-  // ==================================================
 
   const configuracao = {
     erro: {
@@ -177,10 +270,6 @@ function ModalAlerta({
   const atual = configuracao[tipo] || configuracao.erro;
   const Icone = atual.Icone;
 
-  // ==================================================
-  // MODAL
-  // ==================================================
-
   return (
     <Modal
       transparent
@@ -197,7 +286,7 @@ function ModalAlerta({
           paddingHorizontal: 24,
         }}
       >
-        {/* FUNDO ESCURECIDO */}
+        {/* FUNDO */}
 
         <Animated.View
           pointerEvents="none"
@@ -215,7 +304,7 @@ function ModalAlerta({
           }}
         />
 
-        {/* CARTÃO PRINCIPAL */}
+        {/* CARTÃO */}
 
         <Animated.View
           style={{
@@ -223,24 +312,16 @@ function ModalAlerta({
             maxWidth: 440,
             borderRadius: 24,
             overflow: "hidden",
-
             backgroundColor: cores.surface,
-
             borderWidth: 1,
             borderColor: cores.border,
-
             opacity: opacidade,
-
             transform: [
               { scale: escala },
               { translateY: deslocamento },
             ],
-
             shadowColor: "#000000",
-            shadowOffset: {
-              width: 0,
-              height: 14,
-            },
+            shadowOffset: { width: 0, height: 14 },
             shadowOpacity: 0.35,
             shadowRadius: 24,
             elevation: 20,
@@ -253,7 +334,7 @@ function ModalAlerta({
               : {}),
           }}
         >
-          {/* BARRA COLORIDA SUPERIOR */}
+          {/* BARRA */}
 
           <View
             style={{
@@ -263,8 +344,6 @@ function ModalAlerta({
             }}
           />
 
-          {/* CONTEÚDO */}
-
           <View
             style={{
               paddingHorizontal: 24,
@@ -272,7 +351,7 @@ function ModalAlerta({
               paddingBottom: 22,
             }}
           >
-            {/* ÍCONE E BOTÃO FECHAR */}
+            {/* ÍCONE E FECHAR */}
 
             <View
               style={{
@@ -281,31 +360,20 @@ function ModalAlerta({
                 justifyContent: "space-between",
               }}
             >
-              {/* ÍCONE */}
-
               <View
                 style={{
                   width: 58,
                   height: 58,
                   borderRadius: 18,
-
                   justifyContent: "center",
                   alignItems: "center",
-
                   backgroundColor: atual.fundoIcone,
-
                   borderWidth: 1,
                   borderColor: `${atual.cor}50`,
                 }}
               >
-                <Icone
-                  size={32}
-                  color={atual.cor}
-                  weight="fill"
-                />
+                <Icone size={32} color={atual.cor} weight="fill" />
               </View>
-
-              {/* BOTÃO FECHAR */}
 
               <Pressable
                 onPress={fechar}
@@ -314,18 +382,12 @@ function ModalAlerta({
                   width: 38,
                   height: 38,
                   borderRadius: 50,
-
                   justifyContent: "center",
                   alignItems: "center",
-
                   backgroundColor: cores.surfaceSecondary,
-
                   opacity: pressed ? 0.65 : 1,
-
                   ...(Platform.OS === "web"
-                    ? {
-                        cursor: "pointer",
-                      }
+                    ? { cursor: "pointer" }
                     : {}),
                 })}
               >
@@ -342,13 +404,10 @@ function ModalAlerta({
             <Text
               style={{
                 marginTop: 22,
-
                 fontSize: 11,
                 fontWeight: "800",
                 letterSpacing: 1.5,
-
                 color: atual.cor,
-
                 fontFamily: "Inter",
               }}
             >
@@ -360,13 +419,10 @@ function ModalAlerta({
             <Text
               style={{
                 marginTop: 8,
-
                 fontSize: 23,
                 lineHeight: 31,
                 fontWeight: "700",
-
                 color: cores.text,
-
                 fontFamily: "Anuphan",
               }}
             >
@@ -378,42 +434,33 @@ function ModalAlerta({
             <Text
               style={{
                 marginTop: 12,
-
                 fontSize: 14,
                 lineHeight: 23,
-
                 color: cores.textSecondary,
-
                 fontFamily: "Inter",
               }}
             >
               {mensagem}
             </Text>
 
-            {/* BOTÃO PRINCIPAL */}
+            {/* BOTÃO */}
 
             <Pressable
               onPress={fechar}
               style={({ pressed }) => ({
                 marginTop: 26,
-
                 height: 50,
                 width: "100%",
-
                 flexDirection: "row",
                 justifyContent: "center",
                 alignItems: "center",
-
                 borderRadius: 12,
-
                 backgroundColor: atual.cor,
-
                 opacity: pressed ? 0.85 : 1,
-
                 ...(Platform.OS === "web"
                   ? {
-                      cursor: "pointer",
-                      transition: "opacity 150ms ease",
+                        cursor: "pointer",
+                        transition: "opacity 150ms ease",
                     }
                   : {}),
               })}
@@ -422,9 +469,7 @@ function ModalAlerta({
                 style={{
                   fontSize: 15,
                   fontWeight: "800",
-
                   color: "#FFFFFF",
-
                   fontFamily: "Inter",
                 }}
               >
@@ -437,14 +482,10 @@ function ModalAlerta({
             <Text
               style={{
                 marginTop: 20,
-
                 fontSize: 10,
                 letterSpacing: 1,
-
                 textAlign: "center",
-
                 color: cores.textTertiary || "#6F7B83",
-
                 fontFamily: "Inter",
               }}
             >
@@ -458,14 +499,311 @@ function ModalAlerta({
 }
 
 // ==================================================
+// FORMULÁRIO DE LOGIN
+// ==================================================
+
+function FormularioLogin({
+  cores,
+  desktop,
+  email,
+  setEmail,
+  senha,
+  setSenha,
+  mostrarSenha,
+  setMostrarSenha,
+  carregando,
+  entrar,
+  entrarComGoogle,
+  emailRef,
+  senhaRef,
+  navigation,
+}) {
+  return (
+    <View style={{ width: "100%" }}>
+      {/* BOAS-VINDAS */}
+
+      <View style={{ marginBottom: 28 }}>
+        <Text
+          style={{
+            fontSize: desktop ? 30 : 26,
+            lineHeight: desktop ? 40 : 36,
+            fontFamily: "Anuphan",
+            fontWeight: "600",
+            color: cores.text,
+          }}
+        >
+          Bem-vindo,{" "}
+          <Text style={{ color: "#39FF14" }}>
+            jogador!
+          </Text>
+        </Text>
+
+        <Text
+          style={{
+            marginTop: 8,
+            fontSize: 15,
+            lineHeight: 23,
+            fontFamily: "Inter",
+            color: cores.textSecondary,
+          }}
+        >
+          Faça login para continuar
+        </Text>
+      </View>
+
+      {/* E-MAIL */}
+
+      <View style={{ marginBottom: 18 }}>
+        <Text
+          style={{
+            marginBottom: 9,
+            fontSize: 15,
+            fontFamily: "Anuphan",
+            color: cores.text,
+          }}
+        >
+          E-mail
+        </Text>
+
+        <Input
+          ref={emailRef}
+          icon={EnvelopeIcon}
+          placeholder="seu@email.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => senhaRef.current?.focus()}
+        />
+      </View>
+
+      {/* SENHA */}
+
+      <View>
+        <Text
+          style={{
+            marginBottom: 9,
+            fontSize: 15,
+            fontFamily: "Anuphan",
+            color: cores.text,
+          }}
+        >
+          Senha
+        </Text>
+
+        <Input
+          ref={senhaRef}
+          icon={LockIcon}
+          placeholder="Digite sua senha"
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry={!mostrarSenha}
+          returnKeyType="done"
+          onSubmitEditing={entrar}
+          rightIcon={mostrarSenha ? EyeSlashIcon : EyeIcon}
+          onRightIconPress={() => setMostrarSenha(!mostrarSenha)}
+        />
+      </View>
+
+      {/* ESQUECEU A SENHA */}
+
+      <Pressable
+        style={{
+          marginTop: 14,
+          alignSelf: "flex-end",
+          ...(Platform.OS === "web"
+            ? { cursor: "pointer" }
+            : {}),
+        }}
+        onPress={() => {
+          // Implementaremos posteriormente.
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            fontFamily: "Anuphan",
+            color: "#39FF14",
+          }}
+        >
+          Esqueceu sua senha?
+        </Text>
+      </Pressable>
+
+      {/* ENTRAR */}
+
+      <Pressable
+        onPress={entrar}
+        disabled={carregando}
+        style={({ pressed }) => ({
+          marginTop: 26,
+          height: 52,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 12,
+          backgroundColor: cores.primary,
+          opacity: carregando ? 0.7 : pressed ? 0.85 : 1,
+          ...(Platform.OS === "web"
+            ? {
+                  cursor: carregando ? "not-allowed" : "pointer",
+                  transition: "opacity 150ms ease",
+              }
+            : {}),
+        })}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "800",
+                fontFamily: "Inter",
+                color: "#FFFFFF",
+              }}
+            >
+              Entrar
+            </Text>
+
+            <ArrowRightIcon
+              size={23}
+              color="#FFFFFF"
+              weight="bold"
+              style={{
+                position: "absolute",
+                right: 16,
+              }}
+            />
+          </>
+        )}
+      </Pressable>
+
+      {/* GOOGLE - SOMENTE MOBILE NATIVO */}
+
+      {Platform.OS !== "web" && (
+        <>
+          {/* DIVISOR */}
+
+          <View
+            style={{
+              marginTop: 30,
+              marginBottom: 22,
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: cores.border,
+              }}
+            />
+
+            <Text
+              style={{
+                marginHorizontal: 12,
+                fontSize: 13,
+                fontFamily: "Anuphan",
+                color: cores.textSecondary,
+              }}
+            >
+              ou continue com
+            </Text>
+
+            <View
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: cores.border,
+              }}
+            />
+          </View>
+
+          {/* GOOGLE */}
+
+          <Pressable
+            onPress={entrarComGoogle}
+            style={({ pressed }) => ({
+              height: 54,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: cores.border,
+              backgroundColor: cores.surface,
+              opacity: pressed ? 0.75 : 1,
+            })}
+          >
+            <Text
+              style={{
+                fontSize: 15,
+                fontFamily: "Anuphan",
+                color: cores.text,
+              }}
+            >
+              Entrar com sua conta Google
+            </Text>
+          </Pressable>
+        </>
+      )}
+
+      {/* CADASTRO */}
+
+      <View
+        style={{
+          marginTop: 26,
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            fontFamily: "Anuphan",
+            color: cores.textSecondary,
+          }}
+        >
+          Ainda não tem uma conta?{" "}
+        </Text>
+
+        <Pressable
+          onPress={() => navigation.navigate("Cadastro")}
+          style={{
+            ...(Platform.OS === "web"
+              ? { cursor: "pointer" }
+              : {}),
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "700",
+              fontFamily: "Anuphan",
+              color: "#39FF14",
+            }}
+          >
+            Cadastre-se
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// ==================================================
 // TELA DE LOGIN
 // ==================================================
 
 export function Login() {
   const navigation = useNavigation();
-
   const { cores } = useTheme();
-
   const { width } = useWindowDimensions();
 
   // ==================================================
@@ -473,7 +811,6 @@ export function Login() {
   // ==================================================
 
   const desktop = Platform.OS === "web" && width >= 950;
-  const mobileWeb = Platform.OS === "web" && width < 950;
 
   // ==================================================
   // ESTADOS
@@ -493,7 +830,6 @@ export function Login() {
 
   const emailRef = useRef(null);
   const senhaRef = useRef(null);
-
   const acaoAlertaRef = useRef(null);
 
   const {
@@ -502,7 +838,7 @@ export function Login() {
   } = useAuth();
 
   // ==================================================
-  // EXIBIR POP-UP
+  // EXIBIR ALERTA
   // ==================================================
 
   function mostrarAlerta(
@@ -522,7 +858,7 @@ export function Login() {
   }
 
   // ==================================================
-  // FECHAR POP-UP
+  // FECHAR ALERTA
   // ==================================================
 
   function fecharAlerta() {
@@ -535,19 +871,16 @@ export function Login() {
     acaoAlertaRef.current = null;
 
     if (acao) {
-      setTimeout(() => {
-        acao();
-      }, 100);
+      setTimeout(() => acao(), 100);
     }
   }
 
   // ==================================================
-  // VALIDAÇÃO DO E-MAIL
+  // VALIDAR E-MAIL
   // ==================================================
 
   function emailValido(valor) {
     const formatoEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
     return formatoEmail.test(valor.trim());
   }
 
@@ -560,7 +893,7 @@ export function Login() {
   }
 
   // ==================================================
-  // FUNÇÃO ENTRAR
+  // ENTRAR
   // ==================================================
 
   async function entrar() {
@@ -570,8 +903,6 @@ export function Login() {
 
     const emailDigitado = email.trim();
 
-    // CAMPOS VAZIOS
-
     if (!emailDigitado && !senha.trim()) {
       mostrarAlerta(
         "Campos obrigatórios",
@@ -579,7 +910,6 @@ export function Login() {
         "aviso",
         () => emailRef.current?.focus()
       );
-
       return;
     }
 
@@ -590,7 +920,6 @@ export function Login() {
         "aviso",
         () => emailRef.current?.focus()
       );
-
       return;
     }
 
@@ -601,11 +930,8 @@ export function Login() {
         "aviso",
         () => senhaRef.current?.focus()
       );
-
       return;
     }
-
-    // FORMATO DO E-MAIL
 
     if (!emailValido(emailDigitado)) {
       mostrarAlerta(
@@ -614,11 +940,8 @@ export function Login() {
         "erro",
         () => emailRef.current?.focus()
       );
-
       return;
     }
-
-    // AUTENTICAÇÃO
 
     try {
       setCarregando(true);
@@ -635,7 +958,6 @@ export function Login() {
           "sucesso",
           () => navigation.navigate("Home")
         );
-
         return;
       }
 
@@ -658,20 +980,18 @@ export function Login() {
   }
 
   // ==================================================
-  // LOGIN COM GOOGLE
+  // LOGIN GOOGLE
   // ==================================================
 
   async function entrarComGoogle() {
     if (carregando) return;
 
-    // O Google Sign-In nativo ainda não está configurado para Web.
     if (Platform.OS === "web") {
       mostrarAlerta(
         "Login Google indisponível",
         "O acesso com Google pela versão Web será implementado posteriormente.",
         "aviso"
       );
-
       return;
     }
 
@@ -685,9 +1005,7 @@ export function Login() {
 
       const resposta = await GoogleSignin.signIn();
 
-      if (!isSuccessResponse(resposta)) {
-        return;
-      }
+      if (!isSuccessResponse(resposta)) return;
 
       const idToken = resposta.data.idToken;
 
@@ -719,485 +1037,6 @@ export function Login() {
   }
 
   // ==================================================
-  // IDENTIDADE VISUAL
-  // ==================================================
-
-  function PainelMarca() {
-    return (
-      <View
-        style={{
-          flex: desktop ? 1 : undefined,
-          alignItems: desktop ? "flex-start" : "center",
-          justifyContent: desktop ? "center" : "center",
-
-          paddingVertical: desktop ? 40 : 12,
-
-          ...(desktop
-            ? {
-                paddingRight: 55,
-              }
-            : {}),
-        }}
-      >
-        {/* LOGO */}
-
-        <Image
-          source={require("../../assets/Logo.png")}
-          resizeMode="contain"
-          style={{
-            width: desktop ? 260 : 145,
-            height: desktop ? 260 : 145,
-          }}
-        />
-
-        {/* NOME */}
-
-        <Text
-          style={{
-            marginTop: desktop ? 18 : 4,
-
-            fontSize: desktop ? 64 : 36,
-            lineHeight: desktop ? 76 : 44,
-
-            fontWeight: "500",
-            textAlign: desktop ? "left" : "center",
-
-            fontFamily: "Anuphan",
-            color: cores.text,
-          }}
-        >
-          Camisa
-          <Text
-            style={{
-              color: "#39FF14",
-            }}
-          >
-            10
-          </Text>
-        </Text>
-
-        {/* SLOGAN */}
-
-        <Text
-          style={{
-            marginTop: 12,
-
-            fontSize: desktop ? 22 : 16,
-            lineHeight: desktop ? 34 : 24,
-
-            textAlign: desktop ? "left" : "center",
-
-            fontFamily: "Anuphan",
-            color: cores.textSecondary,
-
-            maxWidth: desktop ? 460 : 350,
-          }}
-        >
-          O futebol vai muito além dos{" "}
-          <Text
-            style={{
-              color: "#39FF14",
-              fontWeight: "700",
-            }}
-          >
-            90 minutos.
-          </Text>
-        </Text>
-
-        {/* DESCRIÇÃO DESKTOP */}
-
-        {desktop && (
-          <View
-            style={{
-              marginTop: 32,
-
-              paddingLeft: 18,
-
-              borderLeftWidth: 3,
-              borderLeftColor: "#00C853",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 15,
-                lineHeight: 25,
-
-                fontFamily: "Inter",
-                color: cores.textSecondary,
-
-                maxWidth: 390,
-              }}
-            >
-              Notícias, partidas, desafios, estatísticas e
-              tudo o que conecta você ao esporte mais
-              apaixonante do mundo.
-            </Text>
-          </View>
-        )}
-
-        {/* FRASE DE IDENTIDADE */}
-
-        <View
-          style={{
-            marginTop: desktop ? 40 : 22,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 12,
-              letterSpacing: 2.5,
-              fontWeight: "800",
-
-              textAlign: desktop ? "left" : "center",
-
-              fontFamily: "Inter",
-              color: "#39FF14",
-            }}
-          >
-            CAMISA10 • JUNTOS EM CAMPO
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  // ==================================================
-  // FORMULÁRIO
-  // ==================================================
-
-  function FormularioLogin() {
-    return (
-      <View
-        style={{
-          width: "100%",
-        }}
-      >
-        {/* BOAS-VINDAS */}
-
-        <View
-          style={{
-            marginBottom: 28,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: desktop ? 30 : 26,
-              lineHeight: desktop ? 40 : 36,
-
-              fontFamily: "Anuphan",
-              fontWeight: "600",
-
-              color: cores.text,
-            }}
-          >
-            Bem-vindo,{" "}
-            <Text
-              style={{
-                color: "#39FF14",
-              }}
-            >
-              jogador!
-            </Text>
-          </Text>
-
-          <Text
-            style={{
-              marginTop: 8,
-
-              fontSize: 15,
-              lineHeight: 23,
-
-              fontFamily: "Inter",
-              color: cores.textSecondary,
-            }}
-          >
-            Faça login para continuar
-          </Text>
-        </View>
-
-        {/* E-MAIL */}
-
-        <View
-          style={{
-            marginBottom: 18,
-          }}
-        >
-          <Text
-            style={{
-              marginBottom: 9,
-
-              fontSize: 15,
-
-              fontFamily: "Anuphan",
-              color: cores.text,
-            }}
-          >
-            E-mail
-          </Text>
-
-          <Input
-            ref={emailRef}
-            icon={EnvelopeIcon}
-            placeholder="seu@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            returnKeyType="next"
-            onSubmitEditing={() => senhaRef.current?.focus()}
-          />
-        </View>
-
-        {/* SENHA */}
-
-        <View>
-          <Text
-            style={{
-              marginBottom: 9,
-
-              fontSize: 15,
-
-              fontFamily: "Anuphan",
-              color: cores.text,
-            }}
-          >
-            Senha
-          </Text>
-
-          <Input
-            ref={senhaRef}
-            icon={LockIcon}
-            placeholder="Digite sua senha"
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry={!mostrarSenha}
-            returnKeyType="done"
-            onSubmitEditing={entrar}
-            rightIcon={mostrarSenha ? EyeSlashIcon : EyeIcon}
-            onRightIconPress={() =>
-              setMostrarSenha(!mostrarSenha)
-            }
-          />
-        </View>
-
-        {/* ESQUECEU A SENHA */}
-
-        <Pressable
-          style={{
-            marginTop: 14,
-            alignSelf: "flex-end",
-            ...(Platform.OS === "web"
-              ? {
-                  cursor: "pointer",
-                }
-              : {}),
-          }}
-          onPress={() => {
-            // Implementaremos posteriormente.
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-
-              fontFamily: "Anuphan",
-              color: "#39FF14",
-            }}
-          >
-            Esqueceu sua senha?
-          </Text>
-        </Pressable>
-
-        {/* BOTÃO ENTRAR */}
-
-        <Pressable
-          onPress={entrar}
-          disabled={carregando}
-          style={({ pressed }) => ({
-            marginTop: 26,
-
-            height: 52,
-
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-
-            borderRadius: 12,
-
-            backgroundColor: cores.primary,
-
-            opacity: carregando ? 0.7 : pressed ? 0.85 : 1,
-
-            ...(Platform.OS === "web"
-              ? {
-                    cursor: carregando ? "not-allowed" : "pointer",
-                    transition: "opacity 150ms ease",
-                  }
-              : {}),
-          })}
-        >
-          {carregando ? (
-            <ActivityIndicator
-              size="small"
-              color="#FFFFFF"
-            />
-          ) : (
-            <>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "800",
-
-                  fontFamily: "Inter",
-                  color: "#FFFFFF",
-                }}
-              >
-                Entrar
-              </Text>
-
-              <ArrowRightIcon
-                size={23}
-                color="#FFFFFF"
-                weight="bold"
-                style={{
-                  position: "absolute",
-                  right: 16,
-                }}
-              />
-            </>
-          )}
-        </Pressable>
-
-        {/* GOOGLE - SOMENTE NATIVO */}
-
-        {Platform.OS !== "web" && (
-          <>
-            {/* DIVISOR */}
-
-            <View
-              style={{
-                marginTop: 30,
-                marginBottom: 22,
-
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <View
-                style={{
-                  flex: 1,
-                  height: 1,
-                  backgroundColor: cores.border,
-                }}
-              />
-
-              <Text
-                style={{
-                  marginHorizontal: 12,
-
-                  fontSize: 13,
-
-                  fontFamily: "Anuphan",
-                  color: cores.textSecondary,
-                }}
-              >
-                ou continue com
-              </Text>
-
-              <View
-                style={{
-                  flex: 1,
-                  height: 1,
-                  backgroundColor: cores.border,
-                }}
-              />
-            </View>
-
-            {/* BOTÃO GOOGLE */}
-
-            <Pressable
-              onPress={entrarComGoogle}
-              style={({ pressed }) => ({
-                height: 54,
-
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: cores.border,
-
-                backgroundColor: cores.surface,
-
-                opacity: pressed ? 0.75 : 1,
-              })}
-            >
-              <Text
-                style={{
-                  fontSize: 15,
-
-                  fontFamily: "Anuphan",
-                  color: cores.text,
-                }}
-              >
-                Entrar com sua conta Google
-              </Text>
-            </Pressable>
-          </>
-        )}
-
-        {/* CADASTRO */}
-
-        <View
-          style={{
-            marginTop: 26,
-
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-
-              fontFamily: "Anuphan",
-              color: cores.textSecondary,
-            }}
-          >
-            Ainda não tem uma conta?{" "}
-          </Text>
-
-          <Pressable
-            onPress={() => navigation.navigate("Cadastro")}
-            style={{
-              ...(Platform.OS === "web"
-                ? {
-                      cursor: "pointer",
-                    }
-                : {}),
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "700",
-
-                fontFamily: "Anuphan",
-                color: "#39FF14",
-              }}
-            >
-              Cadastre-se
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // ==================================================
   // TELA
   // ==================================================
 
@@ -1209,22 +1048,17 @@ export function Login() {
       }}
     >
       <KeyboardAvoidingView
-        style={{
-          flex: 1,
-        }}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "android" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         <ScrollView
-          style={{
-            flex: 1,
-          }}
+          style={{ flex: 1 }}
           contentContainerStyle={{
             flexGrow: 1,
 
             ...(desktop
               ? {
-                    minHeight: "100%",
                     justifyContent: "center",
                     paddingVertical: 50,
                     paddingHorizontal: 35,
@@ -1238,9 +1072,7 @@ export function Login() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ============================================ */}
-          {/* CONTAINER PRINCIPAL                         */}
-          {/* ============================================ */}
+          {/* CONTAINER PRINCIPAL */}
 
           <View
             style={{
@@ -1250,11 +1082,9 @@ export function Login() {
                 ? {
                       maxWidth: 1250,
                       alignSelf: "center",
-
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "space-between",
-
                       minHeight: 650,
                     }
                 : {
@@ -1264,9 +1094,7 @@ export function Login() {
                     }),
             }}
           >
-            {/* ======================================== */}
-            {/* LADO ESQUERDO - MARCA                  */}
-            {/* ======================================== */}
+            {/* LADO ESQUERDO */}
 
             <View
               style={{
@@ -1282,12 +1110,13 @@ export function Login() {
                       }),
               }}
             >
-              <PainelMarca />
+              <PainelMarca
+                desktop={desktop}
+                cores={cores}
+              />
             </View>
 
-            {/* ======================================== */}
-            {/* LADO DIREITO - LOGIN                   */}
-            {/* ======================================== */}
+            {/* LADO DIREITO */}
 
             <View
               style={{
@@ -1298,29 +1127,20 @@ export function Login() {
                         maxWidth: 480,
                         width: "44%",
                         padding: 36,
-
                         borderRadius: 24,
                         borderWidth: 1,
                         borderColor: cores.border,
-
                         backgroundColor: cores.surface,
 
                         shadowColor: "#000000",
-                        shadowOffset: {
-                          width: 0,
-                          height: 12,
-                        },
+                        shadowOffset: { width: 0, height: 12 },
                         shadowOpacity: 0.25,
                         shadowRadius: 25,
                         elevation: 10,
 
-                        ...(Platform.OS === "web"
-                          ? {
-                                boxShadow:
-                                  "0px 15px 45px rgba(0,0,0,0.20)",
-                            }
-                          : {}),
-                    }
+                        boxShadow:
+                          "0px 15px 45px rgba(0,0,0,0.20)",
+                      }
                   : {
                         maxWidth: 480,
                         alignSelf: "center",
@@ -1329,13 +1149,28 @@ export function Login() {
                       }),
               }}
             >
-              <FormularioLogin />
+              <FormularioLogin
+                cores={cores}
+                desktop={desktop}
+                email={email}
+                setEmail={setEmail}
+                senha={senha}
+                setSenha={setSenha}
+                mostrarSenha={mostrarSenha}
+                setMostrarSenha={setMostrarSenha}
+                carregando={carregando}
+                entrar={entrar}
+                entrarComGoogle={entrarComGoogle}
+                emailRef={emailRef}
+                senhaRef={senhaRef}
+                navigation={navigation}
+              />
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* POP-UP PERSONALIZADO */}
+      {/* MODAL */}
 
       <ModalAlerta
         visible={alerta.visible}
