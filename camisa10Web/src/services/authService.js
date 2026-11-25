@@ -6,8 +6,6 @@ import {
 
 export { obterToken };
 
-import { File } from "expo-file-system"
-
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // Realiza uma requisição à API
@@ -138,44 +136,71 @@ export async function atualizarFotoPerfil(uri) {
     throw new Error("Nenhum usuário autenticado.");
   }
 
-  const extensao = uri.split(".").pop()?.split("?")[0].toLowerCase();
-
-  const tiposImagem = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    webp: "image/webp",
-  };
-
-  const tipo = tiposImagem[extensao] || "image/jpeg";
-
-  const formulario = new FormData();
-
-  const arquivo = new File(uri);
-
-  formulario.append(
-    "arquivo",
-    arquivo,
-    `foto-perfil.${extensao || "jpg"}`
-  )
-
-  const response = await fetch(`${API_URL}/api/auth/me/foto`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formulario
-  });
-
-  const resultado = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(
-      resultado.detail || "Não foi possível atualizar a foto de perfil."
-    );
+  if (!API_URL) {
+    throw new Error("A URL da API não foi configurada.");
   }
 
-  return resultado
+  try {
+    // Transforma a imagem selecionada em um Blob
+    const respostaArquivo = await fetch(uri);
+
+    if (!respostaArquivo.ok) {
+      throw new Error("Não foi possível acessar a imagem selecionada.");
+    }
+
+    const blob = await respostaArquivo.blob();
+
+    // Identifica o formato real da imagem
+    const tipo = blob.type || "image/jpeg";
+
+    const extensoes = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+    };
+
+    const extensao = extensoes[tipo] || "jpg";
+
+    // Monta o envio multipart
+    const formulario = new FormData();
+
+    formulario.append(
+      "arquivo",
+      blob,
+      `foto-perfil.${extensao}`
+    );
+
+    // Envia a imagem para a API
+    const response = await fetch(
+      `${API_URL}/api/auth/me/foto`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formulario,
+      }
+    );
+
+    const resultado = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        resultado.detail ||
+          "Não foi possível atualizar a foto de perfil."
+      );
+    }
+
+    console.log("RESPOSTA DA API AO ENVIAR FOTO:", resultado);
+
+    return resultado;
+  } catch (error) {
+    console.error("ERRO NO UPLOAD DA FOTO:", error);
+
+    throw new Error(
+      error.message || "Não foi possível enviar a foto."
+    );
+  }
 }
 
 export async function alterarSenha(senhaAtual, novaSenha) {

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 
 import {
@@ -6,19 +7,17 @@ import {
   Image,
   Modal,
   Pressable,
-  Platform,
 } from "react-native";
 
-import * as ImagePicker from "expo-image-picker";
-import { useTheme } from "../context/ThemeContext";
-
 import {
-  CameraIcon,
   ImagesIcon,
   XIcon,
   WarningCircleIcon,
   UserIcon,
+  CaretRightIcon,
 } from "phosphor-react-native";
+
+import { useTheme } from "../context/ThemeContext";
 
 export function FotoPerfil({
   foto,
@@ -31,79 +30,109 @@ export function FotoPerfil({
   const [modalVisivel, setModalVisivel] = useState(false);
   const [mensagemErro, setMensagemErro] = useState("");
 
-  async function selecionarGaleria() {
+  // =====================================================
+  // SELECIONAR IMAGEM DO COMPUTADOR
+  // =====================================================
+
+  function selecionarGaleria() {
     setMensagemErro("");
 
-    const permissao =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const input = document.getElementById("foto-perfil-input");
 
-    if (!permissao.granted) {
-      setMensagemErro(
-        "Precisamos de permissão para acessar sua galeria. Verifique as configurações do dispositivo."
-      );
-      return;
-    }
-
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!resultado.canceled && resultado.assets?.length > 0) {
-      onFotoSelecionada?.(resultado.assets[0].uri);
-      setModalVisivel(false);
-      setMensagemErro("");
+    if (input) {
+      input.click();
     }
   }
 
-  async function tirarFoto() {
+  // =====================================================
+  // PROCESSAR ARQUIVO SELECIONADO
+  // =====================================================
+
+  function processarArquivo(event) {
+    const arquivo = event.target.files?.[0];
+
+    if (!arquivo) return;
+
+    // Valida o tipo do arquivo
+    if (!arquivo.type.startsWith("image/")) {
+      setMensagemErro("Selecione um arquivo de imagem válido.");
+      event.target.value = "";
+      return;
+    }
+
+    // Limite de 5 MB
+    if (arquivo.size > 5 * 1024 * 1024) {
+      setMensagemErro("A imagem deve possuir no máximo 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
     setMensagemErro("");
 
-    if (Platform.OS === "web") {
-      setMensagemErro(
-        "A câmera está disponível somente na versão mobile do aplicativo."
-      );
-      return;
-    }
+    const leitor = new FileReader();
 
-    const permissao =
-      await ImagePicker.requestCameraPermissionsAsync();
+    leitor.onload = () => {
+      const imagem = leitor.result;
 
-    if (!permissao.granted) {
-      setMensagemErro(
-        "Precisamos de permissão para utilizar sua câmera. Verifique as configurações do dispositivo."
-      );
-      return;
-    }
+      if (typeof imagem === "string") {
+        onFotoSelecionada?.(imagem);
 
-    const resultado = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+        setModalVisivel(false);
+        setMensagemErro("");
+      }
+    };
 
-    if (!resultado.canceled && resultado.assets?.length > 0) {
-      onFotoSelecionada?.(resultado.assets[0].uri);
-      setModalVisivel(false);
-      setMensagemErro("");
-    }
+    leitor.onerror = () => {
+      setMensagemErro("Não foi possível carregar a imagem.");
+    };
+
+    leitor.readAsDataURL(arquivo);
+
+    // Permite selecionar novamente o mesmo arquivo
+    event.target.value = "";
   }
+
+  // =====================================================
+  // FECHAR MODAL
+  // =====================================================
 
   function fecharModal() {
     setModalVisivel(false);
     setMensagemErro("");
   }
 
+  // =====================================================
+  // COMPONENTE
+  // =====================================================
+
   return (
     <>
-      {/* FOTO E BOTÃO DE EDIÇÃO */}
+      {/* INPUT DE ARQUIVO WEB */}
 
-      <View style={{ alignItems: "center" }}>
+      <input
+        id="foto-perfil-input"
+        type="file"
+        accept="image/*"
+        onChange={processarArquivo}
+        style={{
+          display: "none",
+        }}
+      />
+
+      {/* =================================================
+          FOTO DE PERFIL
+      ================================================= */}
+
+      <View
+        style={{
+          alignItems: "center",
+        }}
+      >
         <Pressable
           onPress={() => setModalVisivel(true)}
-          style={{
+          accessibilityRole="button"
+          accessibilityLabel="Alterar foto de perfil"
+          style={({ pressed }) => ({
             width: tamanho,
             height: tamanho,
             borderRadius: tamanho / 2,
@@ -112,7 +141,10 @@ export function FotoPerfil({
             borderColor: cores.primary,
             alignItems: "center",
             justifyContent: "center",
-          }}
+            overflow: "hidden",
+            opacity: pressed ? 0.85 : 1,
+            transform: [{ scale: pressed ? 0.97 : 1 }],
+          })}
         >
           {foto ? (
             <Image
@@ -122,6 +154,7 @@ export function FotoPerfil({
                 height: tamanho - 6,
                 borderRadius: tamanho / 2,
               }}
+              resizeMode="cover"
             />
           ) : (
             <UserIcon
@@ -130,28 +163,6 @@ export function FotoPerfil({
               weight="regular"
             />
           )}
-
-          <View
-            style={{
-              position: "absolute",
-              bottom: 0,
-              right: 0,
-              width: 34,
-              height: 34,
-              borderRadius: 17,
-              backgroundColor: cores.primary,
-              borderWidth: 3,
-              borderColor: cores.background,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <CameraIcon
-              size={17}
-              color={cores.background}
-              weight="bold"
-            />
-          </View>
         </Pressable>
 
         <Text
@@ -159,13 +170,16 @@ export function FotoPerfil({
             color: cores.textSecondary,
             fontSize: 13,
             marginTop: 12,
+            textAlign: "center",
           }}
         >
           Toque na foto para alterá-la
         </Text>
       </View>
 
-      {/* MODAL DE SELEÇÃO */}
+      {/* =================================================
+          MODAL DE SELEÇÃO
+      ================================================= */}
 
       <Modal
         visible={modalVisivel}
@@ -178,9 +192,12 @@ export function FotoPerfil({
             flex: 1,
             backgroundColor: cores.overlay,
             justifyContent: "center",
-            paddingHorizontal: 24,
+            alignItems: "center",
+            padding: 20,
           }}
         >
+          {/* FUNDO CLICÁVEL */}
+
           <Pressable
             onPress={fecharModal}
             style={{
@@ -192,144 +209,66 @@ export function FotoPerfil({
             }}
           />
 
+          {/* CARD DO MODAL */}
+
           <View
             style={{
               backgroundColor: cores.surface,
               borderRadius: 22,
-              padding: 22,
+              padding: 24,
               borderWidth: 1,
               borderColor: cores.border,
+              width: "100%",
+              maxWidth: 420,
+              alignSelf: "center",
             }}
           >
+            {/* CABEÇALHO */}
+
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 8,
-              }}
-            >
-              <Text
-                style={{
-                  color: cores.text,
-                  fontSize: 19,
-                  fontWeight: "bold",
-                }}
-              >
-                Foto de perfil
-              </Text>
-
-              <Pressable onPress={fecharModal}>
-                <XIcon size={23} color={cores.icon} />
-              </Pressable>
-            </View>
-
-            <Text
-              style={{
-                color: cores.textSecondary,
-                fontSize: 13,
-                marginBottom: 22,
-              }}
-            >
-              Como deseja escolher sua foto?
-            </Text>
-
-            {/* GALERIA */}
-
-            <Pressable
-              onPress={selecionarGaleria}
-              style={{
-                backgroundColor: cores.surfaceSecondary,
-                borderWidth: 1,
-                borderColor: cores.border,
-                borderRadius: 14,
-                padding: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 12,
+                marginBottom: 20,
               }}
             >
               <View
                 style={{
-                  width: 43,
-                  height: 43,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(0,200,83,0.13)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ImagesIcon
-                  size={23}
-                  color={cores.primary}
-                  weight="fill"
-                />
-              </View>
-
-              <View style={{ marginLeft: 13, flex: 1 }}>
-                <Text
-                  style={{
-                    color: cores.text,
-                    fontSize: 14,
-                    fontWeight: "bold",
-                  }}
-                >
-                  Escolher da galeria
-                </Text>
-
-                <Text
-                  style={{
-                    color: cores.textSecondary,
-                    fontSize: 12,
-                    marginTop: 3,
-                  }}
-                >
-                  Selecione uma imagem do dispositivo
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* CÂMERA */}
-
-            {Platform.OS !== "web" && (
-              <Pressable
-                onPress={tirarFoto}
-                style={{
-                  backgroundColor: cores.surfaceSecondary,
-                  borderWidth: 1,
-                  borderColor: cores.border,
-                  borderRadius: 14,
-                  padding: 16,
                   flexDirection: "row",
                   alignItems: "center",
+                  flex: 1,
                 }}
               >
                 <View
                   style={{
-                    width: 43,
-                    height: 43,
-                    borderRadius: 12,
-                    backgroundColor: "rgba(0,200,83,0.13)",
+                    width: 45,
+                    height: 45,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(0,200,83,0.12)",
+                    borderWidth: 1,
+                    borderColor: "rgba(0,200,83,0.25)",
                     alignItems: "center",
                     justifyContent: "center",
+                    marginRight: 12,
                   }}
                 >
-                  <CameraIcon
-                    size={23}
+                  <ImagesIcon
+                    size={24}
                     color={cores.primary}
                     weight="fill"
                   />
                 </View>
 
-                <View style={{ marginLeft: 13, flex: 1 }}>
+                <View>
                   <Text
                     style={{
                       color: cores.text,
-                      fontSize: 14,
-                      fontWeight: "bold",
+                      fontSize: 18,
+                      fontWeight: "800",
                     }}
                   >
-                    Tirar uma foto
+                    Foto de perfil
                   </Text>
 
                   <Text
@@ -339,13 +278,137 @@ export function FotoPerfil({
                       marginTop: 3,
                     }}
                   >
-                    Utilize a câmera do dispositivo
+                    Personalize sua conta
                   </Text>
                 </View>
-              </Pressable>
-            )}
+              </View>
 
-            {/* MENSAGEM DE ERRO */}
+              {/* BOTÃO FECHAR */}
+
+              <Pressable
+                onPress={fecharModal}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar modal"
+                style={({ pressed }) => ({
+                  width: 35,
+                  height: 35,
+                  borderRadius: 11,
+                  backgroundColor: cores.surfaceSecondary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <XIcon
+                  size={20}
+                  color={cores.icon}
+                />
+              </Pressable>
+            </View>
+
+            {/* DESCRIÇÃO */}
+
+            <Text
+              style={{
+                color: cores.textSecondary,
+                fontSize: 13,
+                lineHeight: 19,
+                marginBottom: 20,
+              }}
+            >
+              Escolha uma imagem do seu computador para deixar
+              seu perfil com a sua cara.
+            </Text>
+
+            {/* SELECIONAR ARQUIVO */}
+
+            <Pressable
+              onPress={selecionarGaleria}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                backgroundColor: pressed
+                  ? "rgba(0,200,83,0.10)"
+                  : cores.surfaceSecondary,
+                borderWidth: 1,
+                borderColor: pressed
+                  ? cores.primary
+                  : cores.border,
+                borderRadius: 16,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              })}
+            >
+              {/* ÍCONE */}
+
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "rgba(0,200,83,0.12)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ImagesIcon
+                  size={25}
+                  color={cores.primary}
+                  weight="fill"
+                />
+              </View>
+
+              {/* TEXTOS */}
+
+              <View
+                style={{
+                  flex: 1,
+                  marginLeft: 13,
+                }}
+              >
+                <Text
+                  style={{
+                    color: cores.text,
+                    fontSize: 14,
+                    fontWeight: "800",
+                  }}
+                >
+                  Escolher imagem
+                </Text>
+
+                <Text
+                  style={{
+                    color: cores.textSecondary,
+                    fontSize: 12,
+                    marginTop: 5,
+                  }}
+                >
+                  Buscar uma foto no computador
+                </Text>
+              </View>
+
+              <CaretRightIcon
+                size={21}
+                color={cores.textSecondary}
+              />
+            </Pressable>
+
+            {/* LIMITE DE TAMANHO */}
+
+            <Text
+              style={{
+                color: cores.textTertiary,
+                fontSize: 11,
+                textAlign: "center",
+                marginTop: 12,
+              }}
+            >
+              Tamanho máximo permitido: 5 MB
+            </Text>
+
+            {/* ERRO */}
 
             {!!mensagemErro && (
               <View
@@ -353,9 +416,9 @@ export function FotoPerfil({
                   marginTop: 16,
                   padding: 12,
                   borderRadius: 12,
-                  backgroundColor: "rgba(229,57,53,0.12)",
+                  backgroundColor: "rgba(229,57,53,0.10)",
                   borderWidth: 1,
-                  borderColor: "rgba(229,57,53,0.4)",
+                  borderColor: "rgba(229,57,53,0.35)",
                   flexDirection: "row",
                   alignItems: "flex-start",
                 }}
@@ -384,16 +447,22 @@ export function FotoPerfil({
 
             <Pressable
               onPress={fecharModal}
-              style={{
+              style={({ pressed }) => ({
                 alignItems: "center",
+                justifyContent: "center",
                 paddingVertical: 13,
-                marginTop: 12,
-              }}
+                marginTop: 10,
+                borderRadius: 12,
+                backgroundColor: pressed
+                  ? cores.surfaceSecondary
+                  : "transparent",
+              })}
             >
               <Text
                 style={{
                   color: cores.textSecondary,
-                  fontWeight: "600",
+                  fontSize: 13,
+                  fontWeight: "700",
                 }}
               >
                 Cancelar
