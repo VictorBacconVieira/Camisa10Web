@@ -1,3 +1,6 @@
+
+import { useEffect, useState } from "react";
+
 import {
   Pressable,
   ScrollView,
@@ -7,11 +10,12 @@ import {
   Linking,
   Modal,
   Switch,
+  useWindowDimensions,
 } from "react-native";
 
-import { Texto } from "../components/texto";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useEffect, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 
 import {
   PersonArmsSpreadIcon,
@@ -19,19 +23,36 @@ import {
   QuestionIcon,
 } from "phosphor-react-native";
 
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Texto } from "../components/texto";
+import { SideBar } from "../components/sideBar";
 
-import { useNavigation } from "@react-navigation/native";
+import {
+  obterPlacarPersonalizado,
+  obterNoticias,
+} from "../services/authService";
 
-import { BottomNav } from "../components/bottomNav";
-
-import { obterPlacarPersonalizado, obterNoticias } from "../services/authService";
 import { useTheme } from "../context/ThemeContext";
 import { useAccessibility } from "../context/AccessibilityContext";
 
 export function Home() {
   const navigation = useNavigation();
-  const {cores, altoContraste, alternarAltoContraste,} = useTheme();
+  const { width } = useWindowDimensions();
+
+  const {
+    cores,
+    altoContraste,
+    alternarAltoContraste,
+  } = useTheme();
+
+  const {
+    configuracoes,
+    alterarTamanhoTexto,
+    alternarAcessibilidade,
+  } = useAccessibility();
+
+  // =====================================================
+  // ESTADOS
+  // =====================================================
 
   const [placar, setPlacar] = useState(null);
   const [carregandoPlacar, setCarregandoPlacar] = useState(true);
@@ -39,11 +60,43 @@ export function Home() {
 
   const [noticias, setNoticias] = useState([]);
   const [carregandoNoticias, setCarregandoNoticias] = useState(true);
-  const [erroNoticias, setErroNoticias] = useState(null)
+  const [erroNoticias, setErroNoticias] = useState(null);
 
-  const {configuracoes, alterarTamanhoTexto, alternarAcessibilidade, fontScale} = useAccessibility();
   const [modalAcessibilidade, setModalAcessibilidade] = useState(false);
-  const escalaEscudo = configuracoes.tamanhoTexto === "grande" ? 1.15 : configuracoes.tamanhoTexto === "muitoGrande" ? 1.3 : 1;
+
+  // =====================================================
+  // CORES
+  // =====================================================
+
+  const fundo = cores.background;
+  const superficie = cores.surface;
+  const superficieSecundaria = cores.surfaceSecondary;
+  const borda = cores.border;
+  const texto = cores.text;
+  const textoSecundario = cores.textSecondary;
+  const primaria = cores.primary;
+  const icone = cores.icon;
+  const overlay = cores.overlay;
+
+  // =====================================================
+  // RESPONSIVIDADE
+  // =====================================================
+
+  const telaGrande = width >= 1100;
+  const telaMedia = width >= 750;
+
+  const larguraConteudo = telaGrande ? 1200 : 850;
+
+  const escalaEscudo =
+    configuracoes.tamanhoTexto === "grande"
+      ? 1.15
+      : configuracoes.tamanhoTexto === "muitoGrande"
+      ? 1.3
+      : 1;
+
+  // =====================================================
+  // CARREGAR PLACAR
+  // =====================================================
 
   useEffect(() => {
     async function carregarPlacar() {
@@ -61,8 +114,13 @@ export function Home() {
         setCarregandoPlacar(false);
       }
     }
+
     carregarPlacar();
   }, []);
+
+  // =====================================================
+  // CARREGAR NOTÍCIAS
+  // =====================================================
 
   useEffect(() => {
     async function carregarNoticias() {
@@ -72,9 +130,10 @@ export function Home() {
 
         const resultado = await obterNoticias("todas");
 
-        setNoticias(resultado.noticias || []);
+        setNoticias(resultado?.noticias || []);
       } catch (error) {
-        console.error("Erro ao carregar notícias da Home:", error);
+        console.error("Erro ao carregar notícias:", error);
+
         setErroNoticias(error.message);
         setNoticias([]);
       } finally {
@@ -85,48 +144,67 @@ export function Home() {
     carregarNoticias();
   }, []);
 
+  // =====================================================
+  // DADOS DO JOGO
+  // =====================================================
+
   const timeFavorito = placar?.time ?? null;
-
   const jogoDestaque = placar?.jogo?.jogo ?? null;
-
   const tipoJogo = placar?.jogo?.tipo ?? null;
 
   const ehResultado = tipoJogo === "resultado";
 
   const dataFormatada = jogoDestaque?.data
     ? new Date(jogoDestaque.data).toLocaleDateString("pt-BR", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-      timeZone: "America/Sao_Paulo",
-    })
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "America/Sao_Paulo",
+      })
     : null;
 
   const horarioFormatado = jogoDestaque?.data
     ? new Date(jogoDestaque.data).toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "America/Sao_Paulo",
-    })
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Sao_Paulo",
+      })
     : null;
+
+  // =====================================================
+  // FORMATAR TEMPO DAS NOTÍCIAS
+  // =====================================================
 
   function formatarTempo(data) {
     if (!data) return "";
 
     const agora = new Date();
     const publicacao = new Date(data);
-    const diferenca = Math.floor((agora - publicacao) / 60000);
+
+    const diferenca = Math.floor(
+      (agora - publicacao) / 60000
+    );
 
     if (diferenca < 1) return "Agora";
-    if (diferenca < 60) return `Há ${diferenca} min`;
+
+    if (diferenca < 60) {
+      return `Há ${diferenca} min`;
+    }
 
     const horas = Math.floor(diferenca / 60);
 
-    if (horas < 24) return `Há ${horas}h`;
+    if (horas < 24) {
+      return `Há ${horas}h`;
+    }
 
     const dias = Math.floor(horas / 24);
+
     return `Há ${dias} dia${dias > 1 ? "s" : ""}`;
   }
+
+  // =====================================================
+  // ABRIR NOTÍCIA
+  // =====================================================
 
   async function abrirNoticia(noticia) {
     if (!noticia?.url) return;
@@ -134,557 +212,897 @@ export function Home() {
     try {
       await Linking.openURL(noticia.url);
     } catch (error) {
-      console.error("Erro ao abrir notícia:", error)
+      console.error("Erro ao abrir notícia:", error);
     }
   }
 
-  return (
-    <SafeAreaView className="flex-1 bg-fundo" edges={["top", "bottom"]}>
+  // =====================================================
+  // ESTILOS
+  // =====================================================
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingBottom: 110,
+  const cardStyle = {
+    backgroundColor: superficie,
+    borderWidth: 1,
+    borderColor: borda,
+    borderRadius: 16,
+  };
+
+  const tituloSecao = {
+    color: texto,
+    fontSize: 21,
+    fontWeight: "700",
+  };
+
+  const textoSecao = {
+    color: textoSecundario,
+    fontSize: 14,
+  };
+
+  // =====================================================
+  // CARD DE ESTADO
+  // =====================================================
+
+  function CardMensagem({ titulo, descricao }) {
+    return (
+      <View
+        style={{
+          ...cardStyle,
+          padding: 25,
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 140,
         }}
-        showsVerticalScrollIndicator={false}
       >
+        <Texto
+          tamanho={15}
+          style={{
+            color: texto,
+            textAlign: "center",
+          }}
+        >
+          {titulo}
+        </Texto>
 
-        {/* ================================================= */}
-        {/* CABEÇALHO */}
-        {/* ================================================= */}
-
-        <View className="h-[62px] flex-row items-center justify-center px-4">
-
-          {/* LOGO / NOME CENTRALIZADO */}
-
-          <Text
-            className="text-[40px] text-texto"
+        {descricao ? (
+          <Texto
+            tamanho={13}
             style={{
-              fontFamily: "Anuphan",
+              color: textoSecundario,
+              textAlign: "center",
+              marginTop: 8,
             }}
           >
-            Camisa
-            <Text className="text-[#39FF14]">10</Text>
-          </Text>
+            {descricao}
+          </Texto>
+        ) : null}
+      </View>
+    );
+  }
 
-          {/* AÇÕES À DIREITA */}
+  // =====================================================
+  // CARD DE NOTÍCIA
+  // =====================================================
+
+  function CardNoticia({ noticia, index }) {
+    return (
+      <Pressable
+        key={`${noticia.url || noticia.titulo}-${index}`}
+        onPress={() => abrirNoticia(noticia)}
+        style={({ pressed }) => ({
+          flex: telaMedia ? 1 : undefined,
+          width: telaMedia ? undefined : "100%",
+          minWidth: telaMedia ? 280 : undefined,
+          maxWidth: telaGrande ? 390 : undefined,
+          backgroundColor: superficie,
+          borderWidth: 1,
+          borderColor: borda,
+          borderRadius: 16,
+          overflow: "hidden",
+          opacity: pressed ? 0.85 : 1,
+          transform: [{ scale: pressed ? 0.985 : 1 }],
+        })}
+      >
+        {/* IMAGEM */}
+
+        {noticia.imagem ? (
+          <Image
+            source={{ uri: noticia.imagem }}
+            style={{
+              width: "100%",
+              height: telaGrande ? 190 : 160,
+              backgroundColor: superficieSecundaria,
+            }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            style={{
+              width: "100%",
+              height: 160,
+              backgroundColor: superficieSecundaria,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Texto tamanho={13} style={{ color: textoSecundario }}>
+              Imagem indisponível
+            </Texto>
+          </View>
+        )}
+
+        {/* INFORMAÇÕES */}
+
+        <View style={{ padding: 16, flex: 1 }}>
+          <Texto
+            tamanho={15}
+            style={{
+              color: texto,
+              fontWeight: "600",
+              lineHeight: 22,
+            }}
+          >
+            {noticia.titulo || "Notícia sem título"}
+          </Texto>
 
           <View
-            className="absolute right-4 flex-row items-center"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginTop: 14,
+              gap: 5,
+            }}
           >
+            {noticia.url ? (
+              <Image
+                source={{
+                  uri: `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(
+                    noticia.url
+                  )}&sz=64`,
+                }}
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 4,
+                }}
+                resizeMode="contain"
+              />
+            ) : null}
 
-            {/* NOTIFICAÇÕES */}
+            <Texto
+              tamanho={11}
+              style={{
+                color: textoSecundario,
+              }}
+            >
+              {noticia.fonte || "Fonte"}
+            </Texto>
+
+            <Text style={{ color: textoSecundario, fontSize: 11 }}>
+              •
+            </Text>
+
+            <Texto
+              tamanho={11}
+              style={{
+                color: textoSecundario,
+              }}
+            >
+              {formatarTempo(noticia.publicado_em)}
+            </Texto>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 15,
+            }}
+          >
+            <Texto
+              tamanho={12}
+              style={{
+                color: primaria,
+                fontWeight: "600",
+              }}
+            >
+              Ler notícia
+            </Texto>
+
+            <CaretRightIcon
+              size={16}
+              color={primaria}
+              weight="bold"
+            />
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // =====================================================
+  // COMPONENTE PRINCIPAL
+  // =====================================================
+
+  return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: fundo,
+      }}
+      edges={["top", "bottom"]}
+    >
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          backgroundColor: fundo,
+        }}
+      >
+        {/* SIDEBAR */}
+
+        <SideBar />
+
+        {/* CONTEÚDO */}
+
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: telaMedia ? 28 : 16,
+            paddingTop: 20,
+            paddingBottom: 120,
+            width: "100%",
+            maxWidth: larguraConteudo,
+            alignSelf: "center",
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ================================================= */}
+          {/* CABEÇALHO */}
+          {/* ================================================= */}
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 28,
+              gap: 15,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Texto
+                tamanho={12}
+                style={{
+                  color: primaria,
+                  fontWeight: "700",
+                  letterSpacing: 2,
+                }}
+              >
+                CENTRAL DO FUTEBOL
+              </Texto>
+
+              <Texto
+                tamanho={telaMedia ? 32 : 26}
+                style={{
+                  color: texto,
+                  fontWeight: "700",
+                  marginTop: 5,
+                }}
+              >
+                Bem-vindo à Camisa10
+              </Texto>
+
+              <Texto
+                tamanho={14}
+                style={{
+                  color: textoSecundario,
+                  marginTop: 5,
+                }}
+              >
+                Acompanhe seu time, notícias e desafios.
+              </Texto>
+            </View>
+
+            {/* ACESSIBILIDADE */}
 
             <Pressable
-              className="h-10 w-10 items-center justify-center"
               onPress={() => setModalAcessibilidade(true)}
               style={({ pressed }) => ({
-                opacity: pressed ? 0.6 : 1,
-                transform: [
-                  {
-                    scale: pressed ? 0.9 : 1,
-                  },
-                ],
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                backgroundColor: superficie,
+                borderWidth: 1,
+                borderColor: borda,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.7 : 1,
               })}
             >
               <PersonArmsSpreadIcon
-                size={35}
-                color={cores.icon}
+                size={27}
+                color={icone}
                 weight="regular"
               />
             </Pressable>
-
           </View>
 
-        </View>
+          {/* ================================================= */}
+          {/* CENTRAL DE JOGOS */}
+          {/* ================================================= */}
 
-        {/* ================================================= */}
-        {/* PRÓXIMOS JOGOS */}
-        {/* ================================================= */}
-
-        <View className="mt-1">
-
-          {/* TÍTULO */}
-
-          <View className="mb-3 flex-row items-center justify-between px-5">
-
-            <Texto
-              tamanho={20}
-              className="text-texto text-xl"
+          <View style={{ marginBottom: 30 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+                gap: 10,
+              }}
             >
-              Central de jogos
-            </Texto>
-
-            {/* VER TODOS */}
-
-            <Pressable
-              className="flex-row items-center"
-              onPress={() =>
-                navigation.navigate("Jogos")
-              }
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.6 : 1,
-                transform: [
-                  {
-                    scale: pressed ? 0.96 : 1,
-                  },
-                ],
-              })}
-            >
-              <Texto tamanho={15} className="text-texto-sec">
-                Ver todos
+              <Texto tamanho={21} style={tituloSecao}>
+                Central de jogos
               </Texto>
 
-              <CaretRightIcon
-                size={19}
-                color="#A8B2B9"
-                weight="regular"
-              />
-            </Pressable>
-
-          </View>
-
-          {/* CARD DO JOGO */}
-
-          {carregandoPlacar ? (
-            <View className="mx-3 rounded-[10px] bg-cartao px-3 py-8 items-center">
-              <Texto tamanho={14} className="text-texto-sec">
-                Carregando informações do seu time...
-              </Texto>
-            </View>
-
-          ) : erroPlacar ? (
-            <View className="mx-3 rounded-[10px] bg-cartao px-5 py-8 items-center">
-              <Texto tamanho={16} className="text-texto text-center">
-                Não foi possível carregar as informações do seu time.
-              </Texto>
-
-              <Texto tamanho={14} className="mt-2 text-texto-sec text-center">
-                Verifique sua conexão e tente novamente mais tarde.
-              </Texto>
-            </View>
-          ) : !timeFavorito ? (
-            <View className="mx-3 rounded-[10px] bg-cartao px-5 py-8 items-center">
-              <Texto tamanho={16} className="text-texto text-center">
-                Você ainda não escolheu seu time do coração.
-              </Texto>
-
-              <Texto tamanho={14} className="mt-2 text-texto-sec text-center">
-                Acesse seu perfil e escolha um time para acompanhar os jogos!
-              </Texto>
-            </View>
-          ) : !jogoDestaque ? (
-            <View className="mx-3 rounded-[10px] bg-cartao px-5 py-8 items-center">
-              <Texto tamanho={16} className="text-texto text-center">
-                Nenhuma partida disponível no momento
-              </Texto>
-
-              <Texto tamanho={14} className="mt-2 text-texto-sec text-center">
-                Estamos buscando os próximos jogos do seu time. Volte mais tarde!
-              </Texto>
-            </View>
-          ) : (
-
-            <Pressable
-              className="mx-3 rounded-[10px] bg-cartao px-3 py-3"
-              onPress={() =>
-                navigation.navigate("Jogos")
-              }
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
-                transform: [
-                  {
-                    scale: pressed ? 0.98 : 1,
-                  },
-                ],
-              })}
-            >
-
-              {/* CAMPEONATO */}
-
-              <View className="flex-row items-center">
-
-                {jogoDestaque?.logo_competicao ? (
-                  <Image
-                    source={{ uri: jogoDestaque.logo_competicao }}
-                    style={{ width: 30 * escalaEscudo, height: 30 * escalaEscudo,}}
-                    resizeMode="contain"/>
-                ) : (
-                  <View
-                    style={{ width: 30 * escalaEscudo, height: 30 * escalaEscudo, borderRadius: 6,}}
-                    className="bg-white"/>
-                )}
-
-                <Texto tamanho={14} className="ml-2 text-texto">
-                  {jogoDestaque?.competicao || "Partida em destaque"}
-                </Texto>
-
-              </View>
-
-              {/* TIMES */}
-
-              <View className="mt-8">
-
-                {/* ESCUDOS E PLACAR */}
-
-                <View className="flex-row items-center">
-
-                  <View className="flex-1 items-center justify-center">
-                    {jogoDestaque?.escudo_mandante ? (
-                            <Image
-                              source={{ uri: jogoDestaque.escudo_mandante }}
-                              style={{width: 80 * escalaEscudo, height: 80 * escalaEscudo,}}
-                              resizeMode="contain"
-                            />
-                    ) : (
-                      <View className="h-20 w-20 rounded-full bg-white" />
-                    )}
-                  </View>
-
-                  <View className="flex-1 items-center justify-center">
-                    <Texto tamanho={48} className="text-texto">
-                      {ehResultado &&
-                        jogoDestaque?.gols_mandante !== null &&
-                        jogoDestaque?.gols_visitante !== null
-                        ? `${jogoDestaque.gols_mandante} - ${jogoDestaque.gols_visitante}`
-                        : "x"}
-                    </Texto>
-                  </View>
-
-                  <View className="flex-1 items-center justify-center">
-                    {jogoDestaque?.escudo_visitante ? (
-                      <Image
-                        source={{ uri: jogoDestaque.escudo_visitante }}
-                        style={{width: 80 * escalaEscudo, height: 80 * escalaEscudo,}}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <View className="h-20 w-20 rounded-full bg-white" />
-                    )}
-                  </View>
-
-                </View>
-
-                {/* NOMES DOS CLUBES */}
-
-                <View className="mt-2 flex-row">
-
-                  {/* MANDANTE */}
-                  <View className="flex-1 items-center">
-                    <Texto tamanho={14} className="min-h-[40px] text-center text-texto">
-                      {jogoDestaque?.mandante || "A definir"}
-                    </Texto>
-                  </View>
-
-                  {/* ESPAÇO CENTRAL DO PLACAR */}
-                  <View className="flex-1" />
-
-                  {/* VISITANTE */}
-                  <View className="flex-1 items-center">
-                    <Texto tamanho={14} className="min-h-[40px] text-center text-texto">
-                      {jogoDestaque?.visitante || "A definir"}
-                    </Texto>
-                  </View>
-
-                </View>
-                {/* DATA / HORÁRIO / ESTÁDIO */}
-
-                <View className="mt-4 items-center">
-
-                  <Texto tamanho={15} className="text-texto-sec text-center">
-                    {dataFormatada || "Data a definir"} • {horarioFormatado || "--:--"}
-                  </Texto>
-
-                  <Texto tamanho={15} className="mt-1 text-texto-sec text-center">
-                    {jogoDestaque?.estadio || "Estádio não informado"}
-                  </Texto>
-
-                  <Texto tamanho={12} className="mt-1 text-texto-sec">
-                    {ehResultado ? "Último resultado" : "Próximo jogo"}
-                  </Texto>
-
-                </View>
-
-              </View>
-
-            </Pressable>
-          )}
-        </View>
-
-        {/* ================================================= */}
-        {/* ÚLTIMAS NOTÍCIAS */}
-        {/* ================================================= */}
-
-        <View className="mt-6">
-
-          {/* TÍTULO */}
-
-          <View className="mb-3 flex-row items-center justify-between px-5">
-
-            <Texto
-              tamanho={20}
-              className="text-texto">
-              Últimas Notícias
-            </Texto>
-
-            {/* VER TODAS */}
-
-            <Pressable
-              className="flex-row items-center"
-              onPress={() =>
-                navigation.navigate("Noticias")
-              }
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.6 : 1,
-                transform: [
-                  {
-                    scale: pressed ? 0.96 : 1,
-                  },
-                ],
-              })}
-            >
-
-              <Texto
-                tamanho={15}
-                className="text-texto-sec">
-                Ver todas
-              </Texto>
-
-              <CaretRightIcon
-                size={19}
-                color="#A8B2B9"
-                weight="regular"
-              />
-
-            </Pressable>
-
-          </View>
-
-          {/* NOTÍCIAS */}
-
-          {carregandoNoticias ? (
-            <View className="mx-3 mb-4 rounded-[10px] bg-cartao p-5">
-              <Texto tamanho={14} className="text-texto-sec">
-                Carregando notícias...
-              </Texto>
-            </View>
-          ) : erroNoticias ? (
-            <View className="mx-3 mb-4 rounded-[10px] bg-cartao p-5">
-              <Texto tamanho={14} className="text-texto-sec">
-                Não foi possível carregar as notícias.
-              </Texto>
-            </View>
-          ) : noticias.length === 0 ? (
-            <View className="mx-3 mb-4 rounded-[10px] bg-cartao p-5">
-              <Texto tamanho={14} className="text-texto-sec">
-                Nenhuma notícia encontrada no momento.
-              </Texto>
-            </View>
-          ) : (
-            noticias.slice(0, 2).map((noticia, index) => (
               <Pressable
-                key={`${noticia.url || noticia.titulo}-${index}`}
-                className="mx-3 mb-4 min-h-[89px] flex-row rounded-[10px] bg-cartao p-3"
-                onPress={() => abrirNoticia(noticia)}
+                onPress={() => navigation.navigate("Jogos")}
                 style={({ pressed }) => ({
-                  opacity: pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                  flexDirection: "row",
+                  alignItems: "center",
+                  opacity: pressed ? 0.6 : 1,
                 })}
               >
-                {/* IMAGEM DA NOTÍCIA */}
+                <Texto tamanho={13} style={{ color: textoSecundario }}>
+                  Ver todos
+                </Texto>
 
-                {noticia.imagem ? (
-                  <Image
-                    source={{ uri: noticia.imagem }}
-                    className="h-[68px] w-[90px] rounded-[10px]"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="h-[68px] w-[90px] rounded-[10px] bg-cartao-borda items-center justify-center">
-                    <Texto tamanho={10} className="text-texto-sec text-center">
-                      Sem imagem
+                <CaretRightIcon
+                  size={18}
+                  color={textoSecundario}
+                />
+              </Pressable>
+            </View>
+
+            {/* ESTADOS DA API */}
+
+            {carregandoPlacar ? (
+              <CardMensagem
+                titulo="Carregando informações do seu time..."
+ 
+              />
+            ) : erroPlacar ? (
+              <CardMensagem
+                titulo="Não foi possível carregar as informações do seu time."
+                descricao="Verifique sua conexão e tente novamente mais tarde."
+              />
+            ) : !timeFavorito ? (
+              <CardMensagem
+                titulo="Você ainda não escolheu seu time do coração."
+                descricao="Acesse seu perfil e escolha um time para acompanhar os jogos!"
+              />
+            ) : !jogoDestaque ? (
+              <CardMensagem
+                titulo="Nenhuma partida disponível no momento"
+                descricao="Estamos buscando os próximos jogos do seu time. Volte mais tarde!"
+              />
+            ) : (
+              /* CARD DE JOGO */
+
+              <Pressable
+                onPress={() => navigation.navigate("Jogos")}
+                style={({ pressed }) => ({
+                  ...cardStyle,
+                  padding: telaMedia ? 24 : 16,
+                  opacity: pressed ? 0.85 : 1,
+                  transform: [{ scale: pressed ? 0.99 : 1 }],
+                })}
+              >
+                {/* COMPETIÇÃO */}
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 24,
+                  }}
+                >
+                  {jogoDestaque.logo_competicao ? (
+                    <Image
+                      source={{
+                        uri: jogoDestaque.logo_competicao,
+                      }}
+                      style={{
+                        width: 35 * escalaEscudo,
+                        height: 35 * escalaEscudo,
+                      }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 35,
+                        height: 35,
+                        borderRadius: 8,
+                        backgroundColor: "#FFFFFF",
+                      }}
+                    />
+                  )}
+
+                  <View style={{ marginLeft: 12 }}>
+                    <Texto
+                      tamanho={13}
+                      style={{
+                        color: textoSecundario,
+                      }}
+                    >
+                      COMPETIÇÃO
                     </Texto>
-                  </View>
-                )}
 
-                {/* INFORMAÇÕES */}
-
-                <View className="ml-3 flex-1 justify-between">
-                  <Texto tamanho={14} numberOfLines={3} className="text-texto">
-                    {noticia.titulo}
-                  </Texto>
-
-                  <View className="flex-row flex-wrap items-center">
-                    {noticia.url && (
-                      <Image
-                        source={{
-                          uri: `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(noticia.url)}&sz=64`,
-                        }}
-                        className="h-[15px] w-[15px] rounded-full"
-                        resizeMode="contain"
-                      />
-                    )}
-
-                    <Texto tamanho={12} numberOfLines={1} className="ml-1 text-texto">
-                      {noticia.fonte}
-                    </Texto>
-
-                    <Text className="mx-1 text-xs text-texto-sec">
-                      •
-                    </Text>
-
-                    <Texto tamanho={12} className="text-texto-sec">
-                      {formatarTempo(noticia.publicado_em)}
+                    <Texto
+                      tamanho={15}
+                      style={{
+                        color: texto,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {jogoDestaque.competicao || "Partida em destaque"}
                     </Texto>
                   </View>
                 </View>
+
+                {/* TIMES E PLACAR */}
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {/* MANDANTE */}
+
+                  <View
+                    style={{
+                      flex: 1,
+                      alignItems: "center",
+                    }}
+                  >
+                    {jogoDestaque.escudo_mandante ? (
+                      <Image
+                        source={{
+                          uri: jogoDestaque.escudo_mandante,
+                        }}
+                        style={{
+                          width: 90 * escalaEscudo,
+                          height: 90 * escalaEscudo,
+                        }}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 90,
+                          height: 90,
+                          borderRadius: 45,
+                          backgroundColor: "#FFFFFF",
+                        }}
+                      />
+                    )}
+
+                    <Texto
+                      tamanho={14}
+                      style={{
+                        color: texto,
+                        textAlign: "center",
+                        marginTop: 10,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {jogoDestaque.mandante || "Mandante"}
+                    </Texto>
+                  </View>
+
+                  {/* PLACAR */}
+
+                  <View
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 100,
+                    }}
+                  >
+                    <Texto
+                      tamanho={telaMedia ? 42 : 34}
+                      style={{
+                        color: texto,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {ehResultado &&
+                      jogoDestaque.gols_mandante !== null &&
+                      jogoDestaque.gols_visitante !== null
+                        ? `${jogoDestaque.gols_mandante} - ${jogoDestaque.gols_visitante}`
+                        : "VS"}
+                    </Texto>
+
+                    <View
+                      style={{
+                        marginTop: 8,
+                        backgroundColor: primaria + "20",
+                        paddingHorizontal: 12,
+                        paddingVertical: 5,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <Texto
+                        tamanho={11}
+                        style={{
+                          color: primaria,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {ehResultado ? "FINALIZADO" : "PRÓXIMO JOGO"}
+                      </Texto>
+                    </View>
+                  </View>
+
+                  {/* VISITANTE */}
+
+                  <View
+                    style={{
+                      flex: 1,
+                      alignItems: "center",
+                    }}
+                  >
+                    {jogoDestaque.escudo_visitante ? (
+                      <Image
+                        source={{
+                          uri: jogoDestaque.escudo_visitante,
+                        }}
+                        style={{
+                          width: 90 * escalaEscudo,
+                          height: 90 * escalaEscudo,
+                        }}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 90,
+                          height: 90,
+                          borderRadius: 45,
+                          backgroundColor: "#FFFFFF",
+                        }}
+                      />
+                    )}
+
+                    <Texto
+                      tamanho={14}
+                      style={{
+                        color: texto,
+                        textAlign: "center",
+                        marginTop: 10,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {jogoDestaque.visitante || "Visitante"}
+                    </Texto>
+                  </View>
+                </View>
+
+                {/* INFORMAÇÕES DO JOGO */}
+
+                <View
+                  style={{
+                    marginTop: 24,
+                    paddingTop: 18,
+                    borderTopWidth: 1,
+                    borderColor: borda,
+                    alignItems: "center",
+                  }}
+                >
+                  <Texto
+                    tamanho={14}
+                    style={{
+                      color: textoSecundario,
+                    }}
+                  >
+                    {dataFormatada || "Data a definir"} •{" "}
+                    {horarioFormatado || "--:--"}
+                  </Texto>
+
+                  <Texto
+                    tamanho={14}
+                    style={{
+                      color: textoSecundario,
+                      marginTop: 5,
+                    }}
+                  >
+                    {jogoDestaque.estadio || "Estádio não informado"}
+                  </Texto>
+                </View>
               </Pressable>
-            ))
-          )}
+            )}
+          </View>
 
-        </View>
+          {/* ================================================= */}
+          {/* ÚLTIMAS NOTÍCIAS */}
+          {/* ================================================= */}
 
-        {/* ================================================= */}
-        {/* DESAFIO DO DIA */}
-        {/* ================================================= */}
+          <View style={{ marginBottom: 30 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <Texto tamanho={21} style={tituloSecao}>
+                Últimas notícias
+              </Texto>
 
-        <View className="mt-2 px-5">
+              <Pressable
+                onPress={() => navigation.navigate("Noticias")}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Texto tamanho={13} style={{ color: textoSecundario }}>
+                  Ver todas
+                </Texto>
 
-          <Texto
-            tamanho={20}
-            className="text-texto">
-            Desafio do dia
-          </Texto>
+                <CaretRightIcon
+                  size={18}
+                  color={textoSecundario}
+                />
+              </Pressable>
+            </View>
 
-          <Pressable
-            className="mt-3 rounded-[10px] bg-cartao p-4"
-            onPress={() =>
-              navigation.navigate("Quiz")
-            }
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.85 : 1,
-              transform: [
-                {
-                  scale: pressed ? 0.98 : 1,
-                },
-              ],
-            })}
-          >
+            {/* ESTADOS DA API */}
 
-            <View className="flex-row items-center">
+            {carregandoNoticias ? (
+              <CardMensagem titulo="Carregando notícias..." />
+            ) : erroNoticias ? (
+              <CardMensagem
+                titulo="Não foi possível carregar as notícias."
+                descricao="Tente novamente mais tarde."
+              />
+            ) : noticias.length === 0 ? (
+              <CardMensagem
+                titulo="Nenhuma notícia encontrada."
+                descricao="Novidades sobre o futebol aparecerão aqui."
+              />
+            ) : (
+              <View
+                style={{
+                  flexDirection: telaMedia ? "row" : "column",
+                  flexWrap: "wrap",
+                  gap: 16,
+                }}
+              >
+                {noticias.slice(0, 3).map((noticia, index) => (
+                  <CardNoticia
+                    key={`${noticia.url || noticia.titulo}-${index}`}
+                    noticia={noticia}
+                    index={index}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
 
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-verde">
+          {/* ================================================= */}
+          {/* DESAFIO DO DIA */}
+          {/* ================================================= */}
 
+          <View style={{ marginBottom: 25 }}>
+            <Texto tamanho={21} style={tituloSecao}>
+              Desafio do dia
+            </Texto>
+
+            <Pressable
+              onPress={() => navigation.navigate("Quiz")}
+              style={({ pressed }) => ({
+                ...cardStyle,
+                padding: 20,
+                marginTop: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                opacity: pressed ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.99 : 1 }],
+              })}
+            >
+              {/* ÍCONE */}
+
+              <View
+                style={{
+                  width: 58,
+                  height: 58,
+                  borderRadius: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: primaria,
+                }}
+              >
                 <QuestionIcon
-                  size={30}
-                  color="#F5F7F8"
+                  size={32}
+                  color="#FFFFFF"
                   weight="bold"
                 />
-
               </View>
 
-              <View className="ml-4 flex-1">
+              {/* DESCRIÇÃO */}
 
-                <Texto tamanho={16} className="text-texto">
+              <View style={{ flex: 1, marginLeft: 16 }}>
+                <Texto
+                  tamanho={16}
+                  style={{
+                    color: texto,
+                    fontWeight: "700",
+                  }}
+                >
                   Quiz do dia
                 </Texto>
 
-                <Texto tamanho={14} className="mt-1 text-texto-sec">
+                <Texto
+                  tamanho={13}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 5,
+                  }}
+                >
                   Teste seus conhecimentos sobre futebol!
                 </Texto>
-
               </View>
 
               <CaretRightIcon
                 size={24}
-                color="#A8B2B9"
+                color={textoSecundario}
                 weight="bold"
               />
+            </Pressable>
+          </View>
 
+          {/* ================================================= */}
+          {/* CAMISA10 IA */}
+          {/* ================================================= */}
+
+          <Pressable
+            onPress={() => navigation.navigate("Chatbot")}
+            style={({ pressed }) => ({
+              backgroundColor: primaria,
+              borderRadius: 16,
+              padding: 22,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.99 : 1 }],
+            })}
+          >
+            <View style={{ flex: 1 }}>
+              <Texto
+                tamanho={12}
+                style={{
+                  color: "#FFFFFF",
+                  opacity: 0.85,
+                  fontWeight: "700",
+                }}
+              >
+                SEU ASSISTENTE DE FUTEBOL
+              </Texto>
+
+              <Texto
+                tamanho={20}
+                style={{
+                  color: "#FFFFFF",
+                  fontWeight: "700",
+                  marginTop: 5,
+                }}
+              >
+                Converse com a Camisa10 IA
+              </Texto>
+
+              <Texto
+                tamanho={13}
+                style={{
+                  color: "#FFFFFF",
+                  marginTop: 5,
+                }}
+              >
+                Notícias, times, curiosidades e muito mais.
+              </Texto>
             </View>
 
+            <CaretRightIcon
+              size={28}
+              color="#FFFFFF"
+              weight="bold"
+            />
           </Pressable>
-
-        </View>
-
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* ===================================================== */}
-      {/* BOTÃO FLUTUANTE */}
-      {/* ===================================================== */}
-
-      <Pressable
-        className="absolute bottom-[105px] right-5 h-[80px] w-[80px] items-center justify-center rounded-full bg-verde"
-        onPress={() => { navigation.navigate("Chatbot") }}
-        style={({ pressed }) => ({
-          opacity: pressed ? 0.75 : 1,
-          transform: [
-            {
-              scale: pressed ? 0.9 : 1,
-            },
-          ],
-        })}
-      >
-
-        <Text
-          className="text-5xl font-bold text-texto"
-          style={{
-            fontFamily: "Inter",
-          }}
-        >
-          AI
-        </Text>
-
-      </Pressable>
-
-      
-
-      {/* ================================================= */}
       {/* MODAL DE ACESSIBILIDADE */}
-      {/* ================================================= */}
+      {/* ===================================================== */}
 
       <Modal
         visible={modalAcessibilidade}
         transparent
-        animationType="slide"
+        animationType="fade"
         statusBarTranslucent
         onRequestClose={() => setModalAcessibilidade(false)}
       >
         <View
-          className="flex-1 justify-end"
           style={{
-            backgroundColor: cores.overlay,
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: overlay,
           }}
         >
-          {/* FUNDO CLICÁVEL */}
+          {/* FUNDO */}
+
           <Pressable
-            className="absolute inset-0"
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+            }}
             onPress={() => setModalAcessibilidade(false)}
           />
 
           {/* CONTEÚDO */}
+
           <View
-            className="rounded-t-3xl px-5 pb-8 pt-5"
             style={{
-              backgroundColor: cores.surface,
-              borderTopWidth: 1,
-              borderColor: cores.border,
+              width: "100%",
+              maxWidth: 550,
+              alignSelf: "center",
+              backgroundColor: superficie,
+              borderWidth: 1,
+              borderColor: borda,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingHorizontal: 24,
+              paddingTop: 24,
+              paddingBottom: 32,
             }}
           >
             {/* CABEÇALHO */}
-            <View className="mb-5 flex-row items-center justify-between">
-              <View className="flex-1">
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 24,
+              }}
+            >
+              <View style={{ flex: 1 }}>
                 <Texto
-                  tamanho={20}
-                  style={{ color: cores.text }}
+                  tamanho={21}
+                  style={{
+                    color: texto,
+                    fontWeight: "700",
+                  }}
                 >
                   Acessibilidade
                 </Texto>
 
                 <Texto
                   tamanho={12}
-                  className="mt-1"
-                  style={{ color: cores.textSecondary }}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 5,
+                  }}
                 >
                   Ajustes rápidos para sua experiência
                 </Texto>
@@ -692,30 +1110,41 @@ export function Home() {
 
               <Pressable
                 onPress={() => setModalAcessibilidade(false)}
-                className="h-10 w-10 items-center justify-center rounded-full"
                 style={{
-                  backgroundColor: cores.surfaceSecondary,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  backgroundColor: superficieSecundaria,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-                accessibilityRole="button"
-                accessibilityLabel="Fechar acessibilidade"
               >
-                <Text
-                  style={{
-                    color: cores.text,
-                    fontSize: 24,
-                  }}
-                >
+                <Text style={{ color: texto, fontSize: 24 }}>
                   ×
                 </Text>
               </Pressable>
             </View>
 
             {/* TAMANHO DO TEXTO */}
-            <Texto tamanho={15} className="mb-3" style={{ color: cores.text }}>
+
+            <Texto
+              tamanho={14}
+              style={{
+                color: texto,
+                marginBottom: 12,
+                fontWeight: "600",
+              }}
+            >
               Tamanho do texto
             </Texto>
 
-            <View className="mb-5 flex-row gap-2">
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                marginBottom: 20,
+              }}
+            >
               {[
                 { id: "normal", titulo: "Normal" },
                 { id: "grande", titulo: "Grande" },
@@ -728,22 +1157,27 @@ export function Home() {
                   <Pressable
                     key={item.id}
                     onPress={() => alterarTamanhoTexto(item.id)}
-                    className="flex-1 items-center justify-center rounded-xl px-2 py-3"
                     style={{
-                      backgroundColor: selecionado
-                        ? cores.primary + "20"
-                        : cores.surfaceSecondary,
+                      flex: 1,
+                      paddingVertical: 12,
+                      paddingHorizontal: 5,
+                      borderRadius: 12,
                       borderWidth: 1,
-                      borderColor: selecionado
-                        ? cores.primary
-                        : cores.border,
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityState={{
-                      selected: selecionado,
+                      borderColor: selecionado ? primaria : borda,
+                      backgroundColor: selecionado
+                        ? primaria + "20"
+                        : superficieSecundaria,
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    <Texto tamanho={12} style={{color: cores.text, textAlign: "center",}}>
+                    <Texto
+                      tamanho={12}
+                      style={{
+                        color: texto,
+                        textAlign: "center",
+                      }}
+                    >
                       {item.titulo}
                     </Texto>
                   </Pressable>
@@ -751,14 +1185,28 @@ export function Home() {
               })}
             </View>
 
-            {/* NEGRITO */}
-            <View className="flex-row items-center justify-between py-3">
-              <View className="flex-1 pr-3">
-                <Texto tamanho={14} style={{ color: cores.text }}>
+            {/* TEXTO EM NEGRITO */}
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingVertical: 12,
+              }}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Texto tamanho={14} style={{ color: texto }}>
                   Texto em negrito
                 </Texto>
 
-                <Texto tamanho={11}style={{ color: cores.textSecondary }}>
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 4,
+                  }}
+                >
                   Destaca os textos da interface
                 </Texto>
               </View>
@@ -769,21 +1217,35 @@ export function Home() {
                   alternarAcessibilidade("textoNegrito")
                 }
                 trackColor={{
-                  false: cores.border,
-                  true: cores.primary,
+                  false: borda,
+                  true: primaria,
                 }}
                 thumbColor="#FFFFFF"
               />
             </View>
 
             {/* ALTO CONTRASTE */}
-            <View className="flex-row items-center justify-between py-3">
-              <View className="flex-1 pr-3">
-                <Texto tamanho={14} style={{ color: cores.text }}>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingVertical: 12,
+              }}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Texto tamanho={14} style={{ color: texto }}>
                   Alto contraste
                 </Texto>
 
-                <Texto tamanho={11} style={{ color: cores.textSecondary }}>
+                <Texto
+                  tamanho={11}
+                  style={{
+                    color: textoSecundario,
+                    marginTop: 4,
+                  }}
+                >
                   Facilita a visualização dos elementos
                 </Texto>
               </View>
@@ -792,25 +1254,36 @@ export function Home() {
                 value={altoContraste}
                 onValueChange={alternarAltoContraste}
                 trackColor={{
-                  false: cores.border,
-                  true: cores.primary,
+                  false: borda,
+                  true: primaria,
                 }}
                 thumbColor="#FFFFFF"
               />
             </View>
 
-            {/* ABRIR CONFIGURAÇÕES COMPLETAS */}
+            {/* CONFIGURAÇÕES COMPLETAS */}
+
             <Pressable
-              className="mt-5 items-center justify-center rounded-xl py-4"
-              style={{
-                backgroundColor: cores.primary,
-              }}
               onPress={() => {
                 setModalAcessibilidade(false);
                 navigation.navigate("Acessibilidade");
               }}
+              style={({ pressed }) => ({
+                marginTop: 20,
+                paddingVertical: 15,
+                borderRadius: 12,
+                backgroundColor: primaria,
+                alignItems: "center",
+                opacity: pressed ? 0.8 : 1,
+              })}
             >
-              <Texto tamanho={14} style={{ color: "#FFFFFF" }}>
+              <Texto
+                tamanho={14}
+                style={{
+                  color: "#FFFFFF",
+                  fontWeight: "700",
+                }}
+              >
                 Configurações completas
               </Texto>
             </Pressable>
@@ -818,14 +1291,39 @@ export function Home() {
         </View>
       </Modal>
 
-
-
       {/* ===================================================== */}
-      {/* BARRA DE NAVEGAÇÃO */}
+      {/* BOTÃO FLUTUANTE CAMISA10 IA */}
       {/* ===================================================== */}
 
-      <BottomNav />
-
+      <Pressable
+        onPress={() => navigation.navigate("Chatbot")}
+        style={({ pressed }) => ({
+          position: "absolute",
+          bottom: 25,
+          right: 25,
+          width: 62,
+          height: 62,
+          borderRadius: 31,
+          backgroundColor: primaria,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 1,
+          borderColor: borda,
+          opacity: pressed ? 0.8 : 1,
+          transform: [{ scale: pressed ? 0.92 : 1 }],
+          elevation: 6,
+        })}
+      >
+        <Text
+          style={{
+            color: "#FFFFFF",
+            fontSize: 23,
+            fontWeight: "800",
+          }}
+        >
+          AI
+        </Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
