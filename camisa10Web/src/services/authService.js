@@ -4,6 +4,8 @@ import {
   removerToken,
 } from "./tokenStorage";
 
+export { obterToken };
+
 import { File } from "expo-file-system"
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;

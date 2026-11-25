@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -13,6 +14,7 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 
 import {
@@ -32,11 +34,16 @@ import { useNavigation } from "@react-navigation/native";
 import Input from "../components/input";
 
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 import {
   GoogleSignin,
   isSuccessResponse,
-} from "@react-native-google-signin/google-signin"
+} from "@react-native-google-signin/google-signin";
+
+// ==================================================
+// CONFIGURAÇÃO GOOGLE
+// ==================================================
 
 GoogleSignin.configure({
   webClientId:
@@ -54,44 +61,56 @@ function ModalAlerta({
   tipo = "erro",
   onClose,
 }) {
+  const { cores } = useTheme();
+
   const opacidade = useRef(new Animated.Value(0)).current;
-  const escala = useRef(new Animated.Value(0.85)).current;
+  const escala = useRef(new Animated.Value(0.9)).current;
   const deslocamento = useRef(new Animated.Value(20)).current;
 
   const fechando = useRef(false);
 
+  const nativeDriver = Platform.OS !== "web";
+
+  // ==================================================
+  // ANIMAÇÃO DE ENTRADA
+  // ==================================================
+
   useEffect(() => {
-    if (visible) {
-      fechando.current = false;
+    if (!visible) return;
 
-      opacidade.setValue(0);
-      escala.setValue(0.85);
-      deslocamento.setValue(20);
+    fechando.current = false;
 
-      Animated.parallel([
-        Animated.timing(opacidade, {
-          toValue: 1,
-          duration: 220,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
+    opacidade.setValue(0);
+    escala.setValue(0.9);
+    deslocamento.setValue(20);
 
-        Animated.spring(escala, {
-          toValue: 1,
-          friction: 8,
-          tension: 65,
-          useNativeDriver: true,
-        }),
+    Animated.parallel([
+      Animated.timing(opacidade, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: nativeDriver,
+      }),
 
-        Animated.timing(deslocamento, {
-          toValue: 0,
-          duration: 250,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
+      Animated.spring(escala, {
+        toValue: 1,
+        friction: 8,
+        tension: 65,
+        useNativeDriver: nativeDriver,
+      }),
+
+      Animated.timing(deslocamento, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: nativeDriver,
+      }),
+    ]).start();
   }, [visible]);
+
+  // ==================================================
+  // ANIMAÇÃO DE SAÍDA
+  // ==================================================
 
   function fechar() {
     if (fechando.current) return;
@@ -103,48 +122,64 @@ function ModalAlerta({
         toValue: 0,
         duration: 160,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
       }),
 
       Animated.timing(escala, {
-        toValue: 0.9,
+        toValue: 0.94,
         duration: 160,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
       }),
 
       Animated.timing(deslocamento, {
-        toValue: 15,
+        toValue: 10,
         duration: 160,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
       }),
-    ]).start(() => {
-      onClose();
+    ]).start(({ finished }) => {
+      if (finished) {
+        onClose();
+      }
     });
   }
+
+  // ==================================================
+  // CONFIGURAÇÃO DOS TIPOS
+  // ==================================================
 
   const configuracao = {
     erro: {
       cor: "#E53935",
+      fundoIcone: "#351D20",
       Icone: WarningCircleIcon,
       tituloBotao: "Entendi",
+      identificacao: "OPS! ALGO DEU ERRADO",
     },
 
     sucesso: {
       cor: "#00C853",
+      fundoIcone: "#123323",
       Icone: CheckCircleIcon,
       tituloBotao: "Continuar",
+      identificacao: "TUDO CERTO!",
     },
 
     aviso: {
       cor: "#FFC107",
+      fundoIcone: "#332B16",
       Icone: InfoIcon,
       tituloBotao: "Entendi",
+      identificacao: "ATENÇÃO",
     },
   };
 
   const atual = configuracao[tipo] || configuracao.erro;
   const Icone = atual.Icone;
+
+  // ==================================================
+  // MODAL
+  // ==================================================
 
   return (
     <Modal
@@ -154,14 +189,25 @@ function ModalAlerta({
       statusBarTranslucent
       onRequestClose={fechar}
     >
-      <View className="flex-1 items-center justify-center px-7">
-
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 24,
+        }}
+      >
         {/* FUNDO ESCURECIDO */}
 
         <Animated.View
           pointerEvents="none"
-          className="absolute inset-0 bg-black"
           style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            backgroundColor: "#000000",
             opacity: opacidade.interpolate({
               inputRange: [0, 1],
               outputRange: [0, 0.72],
@@ -169,66 +215,158 @@ function ModalAlerta({
           }}
         />
 
-        {/* JANELA DO ALERTA */}
+        {/* CARTÃO PRINCIPAL */}
 
         <Animated.View
-          className="w-full overflow-hidden rounded-[22px] border border-cartao-borda bg-cartao"
           style={{
+            width: "100%",
+            maxWidth: 440,
+            borderRadius: 24,
+            overflow: "hidden",
+
+            backgroundColor: cores.surface,
+
+            borderWidth: 1,
+            borderColor: cores.border,
+
             opacity: opacidade,
+
             transform: [
               { scale: escala },
               { translateY: deslocamento },
             ],
+
+            shadowColor: "#000000",
+            shadowOffset: {
+              width: 0,
+              height: 14,
+            },
+            shadowOpacity: 0.35,
+            shadowRadius: 24,
+            elevation: 20,
+
+            ...(Platform.OS === "web"
+              ? {
+                  boxShadow:
+                    "0px 18px 55px rgba(0, 0, 0, 0.45)",
+                }
+              : {}),
           }}
         >
-
-          {/* DETALHE SUPERIOR */}
+          {/* BARRA COLORIDA SUPERIOR */}
 
           <View
             style={{
+              width: "100%",
               height: 4,
               backgroundColor: atual.cor,
             }}
           />
 
-          <View className="px-5 pb-5 pt-6">
+          {/* CONTEÚDO */}
 
+          <View
+            style={{
+              paddingHorizontal: 24,
+              paddingTop: 24,
+              paddingBottom: 22,
+            }}
+          >
             {/* ÍCONE E BOTÃO FECHAR */}
 
-            <View className="flex-row items-center justify-between">
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              {/* ÍCONE */}
 
               <View
-                className="h-[52px] w-[52px] items-center justify-center rounded-full"
                 style={{
-                  backgroundColor: `${atual.cor}20`,
+                  width: 58,
+                  height: 58,
+                  borderRadius: 18,
+
+                  justifyContent: "center",
+                  alignItems: "center",
+
+                  backgroundColor: atual.fundoIcone,
+
+                  borderWidth: 1,
+                  borderColor: `${atual.cor}50`,
                 }}
               >
                 <Icone
-                  size={30}
+                  size={32}
                   color={atual.cor}
                   weight="fill"
                 />
               </View>
 
+              {/* BOTÃO FECHAR */}
+
               <Pressable
                 onPress={fechar}
-                className="h-9 w-9 items-center justify-center rounded-full bg-[#26343E]"
-                hitSlop={8}
+                hitSlop={10}
+                style={({ pressed }) => ({
+                  width: 38,
+                  height: 38,
+                  borderRadius: 50,
+
+                  justifyContent: "center",
+                  alignItems: "center",
+
+                  backgroundColor: cores.surfaceSecondary,
+
+                  opacity: pressed ? 0.65 : 1,
+
+                  ...(Platform.OS === "web"
+                    ? {
+                        cursor: "pointer",
+                      }
+                    : {}),
+                })}
               >
                 <XIcon
-                  size={18}
-                  color="#A8B2B9"
+                  size={19}
+                  color={cores.textSecondary}
                   weight="bold"
                 />
               </Pressable>
-
             </View>
+
+            {/* IDENTIFICAÇÃO */}
+
+            <Text
+              style={{
+                marginTop: 22,
+
+                fontSize: 11,
+                fontWeight: "800",
+                letterSpacing: 1.5,
+
+                color: atual.cor,
+
+                fontFamily: "Inter",
+              }}
+            >
+              {atual.identificacao}
+            </Text>
 
             {/* TÍTULO */}
 
             <Text
-              className="mt-5 text-xl text-texto"
               style={{
+                marginTop: 8,
+
+                fontSize: 23,
+                lineHeight: 31,
+                fontWeight: "700",
+
+                color: cores.text,
+
                 fontFamily: "Anuphan",
               }}
             >
@@ -238,26 +376,55 @@ function ModalAlerta({
             {/* MENSAGEM */}
 
             <Text
-              className="mt-2 text-sm leading-6 text-texto-sec"
               style={{
+                marginTop: 12,
+
+                fontSize: 14,
+                lineHeight: 23,
+
+                color: cores.textSecondary,
+
                 fontFamily: "Inter",
               }}
             >
               {mensagem}
             </Text>
 
-            {/* BOTÃO */}
+            {/* BOTÃO PRINCIPAL */}
 
             <Pressable
               onPress={fechar}
-              className="mt-6 h-[48px] flex-row items-center justify-center rounded-xl"
-              style={{
+              style={({ pressed }) => ({
+                marginTop: 26,
+
+                height: 50,
+                width: "100%",
+
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+
+                borderRadius: 12,
+
                 backgroundColor: atual.cor,
-              }}
+
+                opacity: pressed ? 0.85 : 1,
+
+                ...(Platform.OS === "web"
+                  ? {
+                      cursor: "pointer",
+                      transition: "opacity 150ms ease",
+                    }
+                  : {}),
+              })}
             >
               <Text
-                className="text-base font-bold text-white"
                 style={{
+                  fontSize: 15,
+                  fontWeight: "800",
+
+                  color: "#FFFFFF",
+
                   fontFamily: "Inter",
                 }}
               >
@@ -265,9 +432,26 @@ function ModalAlerta({
               </Text>
             </Pressable>
 
+            {/* RODAPÉ */}
+
+            <Text
+              style={{
+                marginTop: 20,
+
+                fontSize: 10,
+                letterSpacing: 1,
+
+                textAlign: "center",
+
+                color: cores.textTertiary || "#6F7B83",
+
+                fontFamily: "Inter",
+              }}
+            >
+              CAMISA10 • JUNTOS EM CAMPO
+            </Text>
           </View>
         </Animated.View>
-
       </View>
     </Modal>
   );
@@ -279,6 +463,17 @@ function ModalAlerta({
 
 export function Login() {
   const navigation = useNavigation();
+
+  const { cores } = useTheme();
+
+  const { width } = useWindowDimensions();
+
+  // ==================================================
+  // RESPONSIVIDADE
+  // ==================================================
+
+  const desktop = Platform.OS === "web" && width >= 950;
+  const mobileWeb = Platform.OS === "web" && width < 950;
 
   // ==================================================
   // ESTADOS
@@ -301,7 +496,10 @@ export function Login() {
 
   const acaoAlertaRef = useRef(null);
 
-  const { entrar: loginContexto, entrarComGoogle: loginGoogleContexto } = useAuth();
+  const {
+    entrar: loginContexto,
+    entrarComGoogle: loginGoogleContexto,
+  } = useAuth();
 
   // ==================================================
   // EXIBIR POP-UP
@@ -322,6 +520,10 @@ export function Login() {
       tipo,
     });
   }
+
+  // ==================================================
+  // FECHAR POP-UP
+  // ==================================================
 
   function fecharAlerta() {
     setAlerta((anterior) => ({
@@ -350,12 +552,12 @@ export function Login() {
   }
 
   // ==================================================
-  // AUTENTICAÇÃO TEMPORÁRIA
+  // AUTENTICAÇÃO
   // ==================================================
 
   async function autenticarUsuario(emailUsuario, senhaUsuario) {
     return await loginContexto(emailUsuario, senhaUsuario);
-}
+  }
 
   // ==================================================
   // FUNÇÃO ENTRAR
@@ -384,7 +586,7 @@ export function Login() {
     if (!emailDigitado) {
       mostrarAlerta(
         "E-mail obrigatório",
-        "Preencha todos os campos para continuar.",
+        "Preencha o campo de e-mail para continuar.",
         "aviso",
         () => emailRef.current?.focus()
       );
@@ -395,7 +597,7 @@ export function Login() {
     if (!senha.trim()) {
       mostrarAlerta(
         "Senha obrigatória",
-        "Preencha todos os campos para continuar.",
+        "Preencha o campo de senha para continuar.",
         "aviso",
         () => senhaRef.current?.focus()
       );
@@ -442,14 +644,14 @@ export function Login() {
         "O e-mail ou a senha estão incorretos. Verifique seus dados e tente novamente.",
         "erro"
       );
-
     } catch (erro) {
+      console.log("Erro ao entrar:", erro);
+
       mostrarAlerta(
         "Erro ao entrar",
         "Não foi possível realizar o login. Tente novamente mais tarde.",
         "erro"
       );
-
     } finally {
       setCarregando(false);
     }
@@ -461,6 +663,17 @@ export function Login() {
 
   async function entrarComGoogle() {
     if (carregando) return;
+
+    // O Google Sign-In nativo ainda não está configurado para Web.
+    if (Platform.OS === "web") {
+      mostrarAlerta(
+        "Login Google indisponível",
+        "O acesso com Google pela versão Web será implementado posteriormente.",
+        "aviso"
+      );
+
+      return;
+    }
 
     try {
       Keyboard.dismiss();
@@ -492,7 +705,6 @@ export function Login() {
           () => navigation.navigate("Home")
         );
       }
-
     } catch (erro) {
       console.log("Erro no login Google:", erro);
 
@@ -501,10 +713,488 @@ export function Login() {
         erro?.message || "Não foi possível realizar o login. Tente novamente.",
         "erro"
       );
-
     } finally {
       setCarregando(false);
-    } 
+    }
+  }
+
+  // ==================================================
+  // IDENTIDADE VISUAL
+  // ==================================================
+
+  function PainelMarca() {
+    return (
+      <View
+        style={{
+          flex: desktop ? 1 : undefined,
+          alignItems: desktop ? "flex-start" : "center",
+          justifyContent: desktop ? "center" : "center",
+
+          paddingVertical: desktop ? 40 : 12,
+
+          ...(desktop
+            ? {
+                paddingRight: 55,
+              }
+            : {}),
+        }}
+      >
+        {/* LOGO */}
+
+        <Image
+          source={require("../../assets/Logo.png")}
+          resizeMode="contain"
+          style={{
+            width: desktop ? 260 : 145,
+            height: desktop ? 260 : 145,
+          }}
+        />
+
+        {/* NOME */}
+
+        <Text
+          style={{
+            marginTop: desktop ? 18 : 4,
+
+            fontSize: desktop ? 64 : 36,
+            lineHeight: desktop ? 76 : 44,
+
+            fontWeight: "500",
+            textAlign: desktop ? "left" : "center",
+
+            fontFamily: "Anuphan",
+            color: cores.text,
+          }}
+        >
+          Camisa
+          <Text
+            style={{
+              color: "#39FF14",
+            }}
+          >
+            10
+          </Text>
+        </Text>
+
+        {/* SLOGAN */}
+
+        <Text
+          style={{
+            marginTop: 12,
+
+            fontSize: desktop ? 22 : 16,
+            lineHeight: desktop ? 34 : 24,
+
+            textAlign: desktop ? "left" : "center",
+
+            fontFamily: "Anuphan",
+            color: cores.textSecondary,
+
+            maxWidth: desktop ? 460 : 350,
+          }}
+        >
+          O futebol vai muito além dos{" "}
+          <Text
+            style={{
+              color: "#39FF14",
+              fontWeight: "700",
+            }}
+          >
+            90 minutos.
+          </Text>
+        </Text>
+
+        {/* DESCRIÇÃO DESKTOP */}
+
+        {desktop && (
+          <View
+            style={{
+              marginTop: 32,
+
+              paddingLeft: 18,
+
+              borderLeftWidth: 3,
+              borderLeftColor: "#00C853",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 15,
+                lineHeight: 25,
+
+                fontFamily: "Inter",
+                color: cores.textSecondary,
+
+                maxWidth: 390,
+              }}
+            >
+              Notícias, partidas, desafios, estatísticas e
+              tudo o que conecta você ao esporte mais
+              apaixonante do mundo.
+            </Text>
+          </View>
+        )}
+
+        {/* FRASE DE IDENTIDADE */}
+
+        <View
+          style={{
+            marginTop: desktop ? 40 : 22,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              letterSpacing: 2.5,
+              fontWeight: "800",
+
+              textAlign: desktop ? "left" : "center",
+
+              fontFamily: "Inter",
+              color: "#39FF14",
+            }}
+          >
+            CAMISA10 • JUNTOS EM CAMPO
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ==================================================
+  // FORMULÁRIO
+  // ==================================================
+
+  function FormularioLogin() {
+    return (
+      <View
+        style={{
+          width: "100%",
+        }}
+      >
+        {/* BOAS-VINDAS */}
+
+        <View
+          style={{
+            marginBottom: 28,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: desktop ? 30 : 26,
+              lineHeight: desktop ? 40 : 36,
+
+              fontFamily: "Anuphan",
+              fontWeight: "600",
+
+              color: cores.text,
+            }}
+          >
+            Bem-vindo,{" "}
+            <Text
+              style={{
+                color: "#39FF14",
+              }}
+            >
+              jogador!
+            </Text>
+          </Text>
+
+          <Text
+            style={{
+              marginTop: 8,
+
+              fontSize: 15,
+              lineHeight: 23,
+
+              fontFamily: "Inter",
+              color: cores.textSecondary,
+            }}
+          >
+            Faça login para continuar
+          </Text>
+        </View>
+
+        {/* E-MAIL */}
+
+        <View
+          style={{
+            marginBottom: 18,
+          }}
+        >
+          <Text
+            style={{
+              marginBottom: 9,
+
+              fontSize: 15,
+
+              fontFamily: "Anuphan",
+              color: cores.text,
+            }}
+          >
+            E-mail
+          </Text>
+
+          <Input
+            ref={emailRef}
+            icon={EnvelopeIcon}
+            placeholder="seu@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+            onSubmitEditing={() => senhaRef.current?.focus()}
+          />
+        </View>
+
+        {/* SENHA */}
+
+        <View>
+          <Text
+            style={{
+              marginBottom: 9,
+
+              fontSize: 15,
+
+              fontFamily: "Anuphan",
+              color: cores.text,
+            }}
+          >
+            Senha
+          </Text>
+
+          <Input
+            ref={senhaRef}
+            icon={LockIcon}
+            placeholder="Digite sua senha"
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry={!mostrarSenha}
+            returnKeyType="done"
+            onSubmitEditing={entrar}
+            rightIcon={mostrarSenha ? EyeSlashIcon : EyeIcon}
+            onRightIconPress={() =>
+              setMostrarSenha(!mostrarSenha)
+            }
+          />
+        </View>
+
+        {/* ESQUECEU A SENHA */}
+
+        <Pressable
+          style={{
+            marginTop: 14,
+            alignSelf: "flex-end",
+            ...(Platform.OS === "web"
+              ? {
+                  cursor: "pointer",
+                }
+              : {}),
+          }}
+          onPress={() => {
+            // Implementaremos posteriormente.
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+
+              fontFamily: "Anuphan",
+              color: "#39FF14",
+            }}
+          >
+            Esqueceu sua senha?
+          </Text>
+        </Pressable>
+
+        {/* BOTÃO ENTRAR */}
+
+        <Pressable
+          onPress={entrar}
+          disabled={carregando}
+          style={({ pressed }) => ({
+            marginTop: 26,
+
+            height: 52,
+
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+
+            borderRadius: 12,
+
+            backgroundColor: cores.primary,
+
+            opacity: carregando ? 0.7 : pressed ? 0.85 : 1,
+
+            ...(Platform.OS === "web"
+              ? {
+                    cursor: carregando ? "not-allowed" : "pointer",
+                    transition: "opacity 150ms ease",
+                  }
+              : {}),
+          })}
+        >
+          {carregando ? (
+            <ActivityIndicator
+              size="small"
+              color="#FFFFFF"
+            />
+          ) : (
+            <>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "800",
+
+                  fontFamily: "Inter",
+                  color: "#FFFFFF",
+                }}
+              >
+                Entrar
+              </Text>
+
+              <ArrowRightIcon
+                size={23}
+                color="#FFFFFF"
+                weight="bold"
+                style={{
+                  position: "absolute",
+                  right: 16,
+                }}
+              />
+            </>
+          )}
+        </Pressable>
+
+        {/* GOOGLE - SOMENTE NATIVO */}
+
+        {Platform.OS !== "web" && (
+          <>
+            {/* DIVISOR */}
+
+            <View
+              style={{
+                marginTop: 30,
+                marginBottom: 22,
+
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  height: 1,
+                  backgroundColor: cores.border,
+                }}
+              />
+
+              <Text
+                style={{
+                  marginHorizontal: 12,
+
+                  fontSize: 13,
+
+                  fontFamily: "Anuphan",
+                  color: cores.textSecondary,
+                }}
+              >
+                ou continue com
+              </Text>
+
+              <View
+                style={{
+                  flex: 1,
+                  height: 1,
+                  backgroundColor: cores.border,
+                }}
+              />
+            </View>
+
+            {/* BOTÃO GOOGLE */}
+
+            <Pressable
+              onPress={entrarComGoogle}
+              style={({ pressed }) => ({
+                height: 54,
+
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: cores.border,
+
+                backgroundColor: cores.surface,
+
+                opacity: pressed ? 0.75 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  fontSize: 15,
+
+                  fontFamily: "Anuphan",
+                  color: cores.text,
+                }}
+              >
+                Entrar com sua conta Google
+              </Text>
+            </Pressable>
+          </>
+        )}
+
+        {/* CADASTRO */}
+
+        <View
+          style={{
+            marginTop: 26,
+
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+
+              fontFamily: "Anuphan",
+              color: cores.textSecondary,
+            }}
+          >
+            Ainda não tem uma conta?{" "}
+          </Text>
+
+          <Pressable
+            onPress={() => navigation.navigate("Cadastro")}
+            style={{
+              ...(Platform.OS === "web"
+                ? {
+                      cursor: "pointer",
+                    }
+                : {}),
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "700",
+
+                fontFamily: "Anuphan",
+                color: "#39FF14",
+              }}
+            >
+              Cadastre-se
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   // ==================================================
@@ -512,275 +1202,136 @@ export function Login() {
   // ==================================================
 
   return (
-    <View className="flex-1 bg-fundo">
-
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: cores.background,
+      }}
+    >
       <KeyboardAvoidingView
-        className="flex-1"
+        style={{
+          flex: 1,
+        }}
         behavior={Platform.OS === "android" ? "padding" : "height"}
         keyboardVerticalOffset={0}
-        style={{ flex: 1 }}
       >
-
         <ScrollView
-          className="flex-1"
+          style={{
+            flex: 1,
+          }}
           contentContainerStyle={{
             flexGrow: 1,
-            paddingHorizontal: 25,
-            paddingTop: 30,
-            paddingBottom: 25,
+
+            ...(desktop
+              ? {
+                    minHeight: "100%",
+                    justifyContent: "center",
+                    paddingVertical: 50,
+                    paddingHorizontal: 35,
+                  }
+              : {
+                    paddingHorizontal: 24,
+                    paddingTop: 25,
+                    paddingBottom: 35,
+                  }),
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ============================================ */}
+          {/* CONTAINER PRINCIPAL                         */}
+          {/* ============================================ */}
 
-          <View className="flex-1">
+          <View
+            style={{
+              width: "100%",
 
-            {/* LOGO */}
+              ...(desktop
+                ? {
+                      maxWidth: 1250,
+                      alignSelf: "center",
 
-            <View className="h-[190px] items-center justify-center">
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
 
-              <Image
-                source={require("../../assets/Logo.png")}
-                resizeMode="contain"
-                className="h-[191px] w-[180px]"
-              />
+                      minHeight: 650,
+                    }
+                : {
+                      flex: 1,
+                      flexDirection: "column",
+                      alignItems: "center",
+                    }),
+            }}
+          >
+            {/* ======================================== */}
+            {/* LADO ESQUERDO - MARCA                  */}
+            {/* ======================================== */}
 
-            </View>
-
-            {/* TÍTULO */}
-
-            <View className="items-center">
-
-              <Text
-                className="text-center text-[40px] text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Camisa
-                <Text className="text-[#39FF14]">
-                  10
-                </Text>
-              </Text>
-
-            </View>
-
-            {/* BOAS-VINDAS */}
-
-            <View className="mt-7 items-center">
-
-              <Text
-                className="text-center text-2xl text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Bem Vindo,{" "}
-                <Text className="text-[#39FF14]">
-                  Jogador!
-                </Text>
-              </Text>
-
-              <Text
-                className="mt-1 text-center text-base text-texto-sec"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Faça login para continuar
-              </Text>
-
-            </View>
-
-            {/* E-MAIL */}
-
-            <View className="mt-4">
-
-              <Text
-                className="mb-2 text-base text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                E-mail
-              </Text>
-
-              <Input
-                ref={emailRef}
-                icon={EnvelopeIcon}
-                placeholder="seu@email.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                returnKeyType="next"
-                onSubmitEditing={() => senhaRef.current?.focus()}
-              />
-
-            </View>
-
-            {/* SENHA */}
-
-            <View className="mt-4">
-
-              <Text
-                className="mb-2 text-base text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Senha
-              </Text>
-
-              <Input
-                ref={senhaRef}
-                icon={LockIcon}
-                placeholder="Digite sua senha"
-                value={senha}
-                onChangeText={setSenha}
-                secureTextEntry={!mostrarSenha}
-                returnKeyType="done"
-                onSubmitEditing={entrar}
-                rightIcon={
-                  mostrarSenha
-                    ? EyeSlashIcon
-                    : EyeIcon
-                }
-                onRightIconPress={() =>
-                  setMostrarSenha(!mostrarSenha)
-                }
-              />
-
-            </View>
-
-            {/* ESQUECEU A SENHA */}
-
-            <Pressable
-              className="mt-3 self-end"
-              onPress={() => {
-                // Implementaremos posteriormente.
+            <View
+              style={{
+                ...(desktop
+                  ? {
+                        flex: 1,
+                        alignSelf: "stretch",
+                        justifyContent: "center",
+                      }
+                  : {
+                        width: "100%",
+                        alignItems: "center",
+                      }),
               }}
             >
-              <Text
-                className="text-base text-[#39FF14]"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Esqueceu sua senha?
-              </Text>
-            </Pressable>
-
-            {/* BOTÃO ENTRAR */}
-
-            <Pressable
-              onPress={entrar}
-              disabled={carregando}
-              className="mt-8 h-[50px] flex-row items-center justify-center rounded-[10px] bg-verde"
-              style={({ pressed }) => ({
-                opacity: carregando ? 0.7 : pressed ? 0.8 : 1,
-              })}
-            >
-
-              {carregando ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#F5F7F8"
-                />
-              ) : (
-                <>
-                  <Text
-                    className="text-xl font-bold text-texto"
-                    style={{
-                      fontFamily: "Inter",
-                    }}
-                  >
-                    Entrar
-                  </Text>
-
-                  <ArrowRightIcon
-                    size={24}
-                    color="#F5F7F8"
-                    weight="bold"
-                    style={{
-                      position: "absolute",
-                      right: 15,
-                    }}
-                  />
-                </>
-              )}
-
-            </Pressable>
-
-            {/* DIVISOR */}
-
-            <View className="mt-11 flex-row items-center">
-
-              <View className="h-px flex-1 bg-cartao-borda" />
-
-              <Text
-                className="mx-3 text-sm text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                ou continue com
-              </Text>
-
-              <View className="h-px flex-1 bg-cartao-borda" />
-
+              <PainelMarca />
             </View>
 
-            {/* GOOGLE */}
+            {/* ======================================== */}
+            {/* LADO DIREITO - LOGIN                   */}
+            {/* ======================================== */}
 
-            <Pressable
-              className="mt-5 h-[55px] flex-row items-center justify-center rounded-[15px] border border-cartao-borda bg-cartao"
-              onPress={entrarComGoogle}
+            <View
+              style={{
+                width: "100%",
+
+                ...(desktop
+                  ? {
+                        maxWidth: 480,
+                        width: "44%",
+                        padding: 36,
+
+                        borderRadius: 24,
+                        borderWidth: 1,
+                        borderColor: cores.border,
+
+                        backgroundColor: cores.surface,
+
+                        shadowColor: "#000000",
+                        shadowOffset: {
+                          width: 0,
+                          height: 12,
+                        },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 25,
+                        elevation: 10,
+
+                        ...(Platform.OS === "web"
+                          ? {
+                                boxShadow:
+                                  "0px 15px 45px rgba(0,0,0,0.20)",
+                            }
+                          : {}),
+                    }
+                  : {
+                        maxWidth: 480,
+                        alignSelf: "center",
+                        paddingTop: 25,
+                        paddingBottom: 10,
+                      }),
+              }}
             >
-
-              <Text
-                className="text-base text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Entrar com sua conta Google
-              </Text>
-
-            </Pressable>
-
-            {/* CADASTRO */}
-
-            <View className="mt-7 flex-row justify-center">
-
-              <Text
-                className="text-sm text-texto"
-                style={{
-                  fontFamily: "Anuphan",
-                }}
-              >
-                Ainda não tem uma conta?{" "}
-              </Text>
-
-              <Pressable
-                onPress={() =>
-                  navigation.navigate("Cadastro")
-                }
-              >
-                <Text
-                  className="text-sm text-[#39FF14]"
-                  style={{
-                    fontFamily: "Anuphan",
-                  }}
-                >
-                  Cadastra-se
-                </Text>
-              </Pressable>
-
+              <FormularioLogin />
             </View>
-
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -793,7 +1344,6 @@ export function Login() {
         tipo={alerta.tipo}
         onClose={fecharAlerta}
       />
-
     </View>
   );
 }
